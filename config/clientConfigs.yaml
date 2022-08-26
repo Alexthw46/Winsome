@@ -1,0 +1,5 @@
+---
+ServerAddress: "localhost"
+TCPPort: 1080
+RegHost: "AUTHENTICATOR"
+RegPort: 10

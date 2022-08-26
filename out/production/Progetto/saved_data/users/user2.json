@@ -1,0 +1,25 @@
+{
+  "userId" : "45e0c766-19ad-408f-b9b6-a7973dfb9393",
+  "username" : "user2",
+  "password" : "p",
+  "tags" : [ "tag1", "tag2" ],
+  "blog" : [ {
+    "username" : "user2",
+    "postId" : 3,
+    "title" : "Third one",
+    "content" : "This is the third post",
+    "comments" : [ ],
+    "ratings" : [ {
+      "user" : "83ee8a77-cdfe-48db-b83f-3a219186a818",
+      "rate" : 1,
+      "timestamp" : 1661203884727
+    } ],
+    "timesChecked" : {
+      "value" : 0
+    }
+  } ],
+  "followedUsers" : [ "83ee8a77-cdfe-48db-b83f-3a219186a818" ],
+  "wallet" : {
+    "value" : 0
+  }
+}
