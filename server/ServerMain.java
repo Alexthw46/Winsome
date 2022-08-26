@@ -24,23 +24,34 @@ import java.util.regex.Pattern;
 
 public class ServerMain {
 
+    //Lookup map to get the userToken from the username
     public static final Map<String, UUID> userIdLookup = new ConcurrentHashMap<>();
 
+    //Map that index Users with their userToken
     public static final Map<UUID, User> userMap = new ConcurrentHashMap<>();
 
+    //map of all the posts, indexed by their postId
     public static final Map<Integer, Post> postLookup = new ConcurrentHashMap<>();
 
 
     public static ServerConfig config;
+
+    //Thread pool for executing requests
     static final ExecutorService pool = Executors.newCachedThreadPool();
 
+    //Time of the last check of rewards
+    static long lastCheck = System.currentTimeMillis();
+
+    static List<String> logger = new CopyOnWriteArrayList<>();
 
     public static void main(String[] args) {
         if (PersistentDataManager.initialize())
-            System.out.println("Server data recovered");
-        else return;
+            System.out.println("Server data recovered.");
+        else {
+            System.out.println("Error while restoring saved data.");
+            return;
+        }
 
-        long startTime = System.currentTimeMillis();
         ServerProxy proxy;
         try {
             proxy = new ServerProxyImpl();
@@ -49,6 +60,7 @@ public class ServerMain {
             Registry reg = LocateRegistry.getRegistry(config.ServerAddress(), config.RegPort());
             reg.rebind(config.RegHost(), stub);
         } catch (RemoteException e) {
+            System.out.println("Error setting up Remote registry");
             e.printStackTrace();
             return;
         }
@@ -66,6 +78,7 @@ public class ServerMain {
             serverSocketChannel.configureBlocking(false);
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
         } catch (IOException e) {
+            System.out.println("Error setting up Selector");
             e.printStackTrace();
             return;
         }
@@ -77,9 +90,9 @@ public class ServerMain {
             while (!shutdown) {
 
                 try {
-                    if (System.currentTimeMillis() - startTime > config.PointsAwardInterval()*1000) {
-                        calculatePointsAndAward(multicastSocket, startTime);
-                        startTime = System.currentTimeMillis();
+                    if (System.currentTimeMillis() - lastCheck > config.PointsAwardInterval() * 1000) {
+                        calculatePointsAndAward(multicastSocket, lastCheck);
+                        lastCheck = System.currentTimeMillis();
                     }
                 } catch (RemoteException ignored) {
 
@@ -115,8 +128,8 @@ public class ServerMain {
                             BufferWrapper wrapper = ((BufferWrapper) key.attachment());
                             ByteBuffer buffer = wrapper.getBuffer();
                             int channelId = wrapper.getId();
-                            //read msg
 
+                            //read msg
                             int bytesRead = client.read(buffer);
                             String msg = "";
                             while (bytesRead > 0) {
@@ -141,7 +154,7 @@ public class ServerMain {
                                 continue;
                             } else {
                                 String message = triplet.op() + " | args: " + triplet.args() + " da: " + triplet.token() + '\n';
-                                System.out.print("Executing : " + message);
+                                logger.add("Executing : " + message);
 
                                 checkAndExecute(channelId, outMap, triplet, proxy);
                             }
@@ -182,9 +195,11 @@ public class ServerMain {
                     iterator.remove();
                 }
             }
+            selector.close();
+
         } catch (IOException e) {
-           e.printStackTrace();
-        }finally {
+            e.printStackTrace();
+        } finally {
             PersistentDataManager.saveAll();
         }
 
@@ -228,17 +243,19 @@ public class ServerMain {
 
     public static void calculatePointsAndAward(DatagramSocket group, long startTime) throws IOException {
 
-        for (Post p : postLookup.values()){
+        for (Post p : postLookup.values()) {
             List<RewardsCalculator.CoinReward> rewards = RewardsCalculator.getPointsFromPost(p, startTime, config.AuthorReward());
-            for (RewardsCalculator.CoinReward coins : rewards){
+            for (RewardsCalculator.CoinReward coins : rewards) {
                 User user = userMap.get(coins.user());
                 user.wallet().setValue(user.wallet().getValue() + coins.reward());
+                logger.add(user.username() + " earned " + coins.reward() + " from post n. " + p.postId() + '\n');
             }
         }
         InetAddress address = InetAddress.getByName(config.MulticastAddress());
         byte[] buffer = winCoinUpdateNotify.getBytes();
         DatagramPacket dp = new DatagramPacket(buffer, buffer.length, address, config.UDPPort());
         System.out.println(winCoinUpdateNotify);
+        logger.add(winCoinUpdateNotify + " at: "+ System.currentTimeMillis());
         group.send(dp);
 
     }

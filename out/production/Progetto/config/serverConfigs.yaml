@@ -5,5 +5,5 @@ TCPPort: 1080
 UDPPort: 44444
 RegHost: "AUTHENTICATOR"
 RegPort: 10
-PointsAwardInterval: 200
+PointsAwardInterval: 60
 AuthorReward: 0.75

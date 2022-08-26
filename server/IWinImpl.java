@@ -50,7 +50,7 @@ public class IWinImpl implements IWin {
                 UUID id = userIdLookup.get(username);
                 User loginAttempt = userMap.get(id);
                 if (loginAttempt.password().equals(password)) {
-                    System.out.println("User " + username + " logged in.");
+                    logger.add("User " + username + " logged in.");
                     result = mapper.writeValueAsString(new Triplet(config.MulticastAddress(), config.UDPPort(), id));
                 } else
                     result = mapper.writeValueAsString(new Triplet("Wrong password.", -1, null));
@@ -99,7 +99,7 @@ public class IWinImpl implements IWin {
             try {
                 proxy.tryNotifyFollowersUpdate(idToFollow);
             } catch (RemoteException e) {
-                System.out.println("Failed to notify client");
+                logger.add("Failed to notify follower update to client : " + idToFollow);
             }
             return "Now following " + toFollow.username();
         } else {
@@ -123,7 +123,7 @@ public class IWinImpl implements IWin {
             try {
                 proxy.tryNotifyFollowersUpdate(idToUnfollow);
             } catch (RemoteException e) {
-                System.out.println("Failed to notify client");
+                logger.add("Failed to notify follower update to client : " + idToUnfollow);
             }
             return "Not following " + toFollow.username() + " anymore.\n";
         } else {
@@ -228,7 +228,7 @@ public class IWinImpl implements IWin {
         if (postLookup.containsKey(idPost) && postLookup.get(idPost).username().equals(user.username())) {
             postLookup.remove(idPost);
             user.blog();
-            System.out.println(postLookup.get(idPost).format() + "\n Deleted Successfully");
+            logger.add(postLookup.get(idPost).format() + "\n Deleted Successfully");
         } else {
             return "Post does not exist or permission was denied";
         }
@@ -326,7 +326,7 @@ public class IWinImpl implements IWin {
                 String toParse = response.body();
                 conversionRatio = Float.parseFloat(toParse);
             } else {
-                System.out.println(response.body());
+                System.out.println("Current conversion ratio: " + response.body());
             }
         } catch (URISyntaxException | IOException | InterruptedException e) {
             return "Conversion Service not available";
@@ -338,12 +338,13 @@ public class IWinImpl implements IWin {
     }
 
     /**
-     * Computes a result, or throws an exception if unable to do so.
+     * Execute the operation corresponding to the opcode given.
      *
-     * @return computed result
+     * @return result of operation or error message
      */
     @Override
     public String call() {
+        //switch on opcode from the input triplet
         switch (this.input.op()) {
             case 100 -> {
                 String[] tokens = input.args().split(" ");
@@ -353,11 +354,11 @@ public class IWinImpl implements IWin {
                 return listUsers(input.token());
             }
             case 3 -> {
-                System.out.println("follow request for " + input.args());
+                logger.add("follow request for " + input.args());
                 return followUser(userIdLookup.get(input.args()), input.token());
             }
             case 4 -> {
-                System.out.println("unfollow request for " + input.args());
+                logger.add("unfollow request for " + input.args());
                 return unfollowUser(userIdLookup.get(input.args()), input.token());
             }
             case 5 -> {
@@ -372,7 +373,6 @@ public class IWinImpl implements IWin {
                     String post = matches.get(1);
                     return createPost(input.token(), title, post);
                 } else {
-                    System.out.println("create post arg error");
                     return "Error while creating post, make sure title and contents are between \" ";
                 }
             }
@@ -386,25 +386,24 @@ public class IWinImpl implements IWin {
             }
             case 13 -> {
                 String[] split = input.args().split("\"");
-                if (isNumeric(split[0].trim())) {
+                if (isNumeric(split[0].trim()) && split.length > 1) {
                     int postId = Integer.parseInt(split[0].trim());
                     String comment = split[1].trim();
                     return addComment(postId, comment, input.token());
                 } else {
-                    System.out.println("NaN");
-                    return "parse error";
+                    return "Arguments not valid. Type help for how to use.";
                 }
             }
             case 14 -> {
                 String[] split = input.args().split(" ");
+                //split and parse the two arguments or throw error
                 try {
-                    if (!isNumeric(split[0]) || !isNumeric(split[1])) throw new NumberFormatException();
+                    if (split.length < 2 || !isNumeric(split[0]) || !isNumeric(split[1])) throw new NumberFormatException();
 
                     int postId = Integer.parseInt(split[0].trim());
                     int rate = Integer.parseInt(split[1].trim());
                     return ratePost(postId, input.token(), rate);
                 } catch (NumberFormatException e) {
-                    e.printStackTrace();
                     return "Arguments error, not a number.";
                 }
             }
@@ -412,8 +411,9 @@ public class IWinImpl implements IWin {
                 return showFeed(input.token());
             }
             case 21 -> {
-                if (isNumeric(input.args()))
+                if (isNumeric(input.args())) {
                     return showPost(Integer.parseInt(input.args()));
+                }else return "Arguments error, not a number.";
             }
             case 30 -> {
                 return getWallet(input.token());
@@ -422,7 +422,7 @@ public class IWinImpl implements IWin {
                 return getWalletInBitcoin(input.token());
             }
         }
-        return this.input.args();
+        return "No operation found for this request";
     }
 
 }

@@ -5,6 +5,34 @@
   "tags" : [ "tag1", "tag2", "tag3" ],
   "blog" : [ {
     "username" : "user",
+    "postId" : 7,
+    "title" : "Yet another coin test",
+    "content" : "Need to see the coins",
+    "comments" : [ {
+      "userId" : "83ee8a77-cdfe-48db-b83f-3a219186a818",
+      "content" : "Coins!",
+      "timestamp" : 1661540778866
+    } ],
+    "ratings" : [ ],
+    "timesChecked" : {
+      "value" : 1
+    }
+  }, {
+    "username" : "user",
+    "postId" : 2,
+    "title" : "This is the Second Post",
+    "content" : "Another Test",
+    "comments" : [ {
+      "userId" : "45e0c766-19ad-408f-b9b6-a7973dfb9393",
+      "content" : "This is a comment on the second post",
+      "timestamp" : 1661190936915
+    } ],
+    "ratings" : [ ],
+    "timesChecked" : {
+      "value" : 6
+    }
+  }, {
+    "username" : "user",
     "postId" : 5,
     "title" : "I want coins",
     "content" : "For testing ofc",
@@ -19,35 +47,7 @@
       "timestamp" : 1661351643452
     } ],
     "timesChecked" : {
-      "value" : 0
-    }
-  }, {
-    "username" : "user",
-    "postId" : 4,
-    "title" : "Coins",
-    "content" : "Gimme coins",
-    "comments" : [ {
-      "userId" : "83ee8a77-cdfe-48db-b83f-3a219186a818",
-      "content" : "Coiiins",
-      "timestamp" : 1661203834541
-    } ],
-    "ratings" : [ ],
-    "timesChecked" : {
-      "value" : 0
-    }
-  }, {
-    "username" : "user",
-    "postId" : 2,
-    "title" : "This is the Second Post",
-    "content" : "Another Test",
-    "comments" : [ {
-      "userId" : "45e0c766-19ad-408f-b9b6-a7973dfb9393",
-      "content" : "This is a comment on the second post",
-      "timestamp" : 1661190936915
-    } ],
-    "ratings" : [ ],
-    "timesChecked" : {
-      "value" : 0
+      "value" : 6
     }
   }, {
     "username" : "user",
@@ -65,7 +65,7 @@
       "timestamp" : 1661351646893
     } ],
     "timesChecked" : {
-      "value" : 0
+      "value" : 6
     }
   }, {
     "username" : "user",
@@ -79,11 +79,25 @@
       "timestamp" : 1661190897618
     } ],
     "timesChecked" : {
-      "value" : 0
+      "value" : 6
+    }
+  }, {
+    "username" : "user",
+    "postId" : 4,
+    "title" : "Coins",
+    "content" : "Gimme coins",
+    "comments" : [ {
+      "userId" : "83ee8a77-cdfe-48db-b83f-3a219186a818",
+      "content" : "Coiiins",
+      "timestamp" : 1661203834541
+    } ],
+    "ratings" : [ ],
+    "timesChecked" : {
+      "value" : 6
     }
   } ],
   "followedUsers" : [ "45e0c766-19ad-408f-b9b6-a7973dfb9393" ],
   "wallet" : {
-    "value" : 0
+    "value" : 0.25
   }
 }

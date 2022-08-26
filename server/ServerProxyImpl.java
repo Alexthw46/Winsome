@@ -18,6 +18,11 @@ import static server.ServerMain.userMap;
 
 public class ServerProxyImpl extends RemoteServer implements ServerProxy {
 
+    /**
+     * use: register <username> <password> <tags>
+     *
+     * @return triplet with <userToken multicastPort multicastAddress>, userToken is null if registration fails
+     */
     @Override
     public synchronized Triplet register(String username, String password, String... tagList) {
         UUID id = null;
@@ -26,31 +31,31 @@ public class ServerProxyImpl extends RemoteServer implements ServerProxy {
             User newUser = new User(id, username, password, Arrays.stream(tagList).filter(s -> !s.isEmpty()).collect(Collectors.toUnmodifiableSet()));
             userIdLookup.put(username, id);
             userMap.put(id, newUser);
-            System.out.println("Registered new user: " + username);
+            ServerMain.logger.add("Registered new user: " + username);
         }
         return new Triplet(ServerMain.config.MulticastAddress(), ServerMain.config.UDPPort(), id);
 
     }
 
-    /* mappa dei client registrati */
+    /* mappa dei client registrati per il callback */
     private final Map<UUID, ClientProxy> clients;
 
-    /* crea un nuovo servente */
     public ServerProxyImpl() throws RemoteException {
         clients = new ConcurrentHashMap<>();
     }
 
+    /* registrazione per il callback e inizializzazione cache followers*/
     public synchronized void registerForCallback(UUID token, ClientProxy callbackClient) throws RemoteException {
         if (!clients.containsKey(token)) {
             clients.put(token, callbackClient);
             tryNotifyFollowersUpdate(token);
             System.out.println("New client registered for callbacks.");
-        }
+        } else throw new RemoteException("Client already registered.");
     }
 
     /* annulla registrazione per il callback */
     public synchronized void unregisterForCallback(UUID token) throws RemoteException {
-        if (clients.remove(token) != null){
+        if (clients.remove(token) != null) {
             System.out.println("Client unregistered");
         } else {
             System.out.println("Unable to unregister client.");
@@ -59,9 +64,10 @@ public class ServerProxyImpl extends RemoteServer implements ServerProxy {
 
     @Override
     public synchronized void tryNotifyFollowersUpdate(UUID toUpdate) throws RemoteException {
-        if (clients.containsKey(toUpdate)){
+        //se il client da notificare è registrato per il callback, la sua cache dei followers viene aggiornata
+        if (clients.containsKey(toUpdate)) {
             List<String> followers = ServerMain.getFollowersFromUser(toUpdate);
-                clients.get(toUpdate).updateFollowersCache(followers);
+            clients.get(toUpdate).updateFollowersCache(followers);
         }
     }
 

@@ -1,9 +1,7 @@
 package client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import common.ClientProxy;
-import common.ServerProxy;
-import common.Triplet;
+import common.*;
 
 import java.io.*;
 import java.net.*;
@@ -84,6 +82,7 @@ public class ClientMain {
                     System.out.println("*  " + message + "   *");
                 }
 
+                //get the user input
                 Triplet tri = CommandParser.getAndParseCommand(scanner, authToken);
                 int op = tri.op();
 
@@ -95,66 +94,70 @@ public class ClientMain {
 
 
                 try {
-
-                    //
+                    //execute the command given
                     switch (op) {
                         case -1 -> CommandParser.printHelp();
                         case -2 -> System.out.println("Invalid operation : " + tri.args());
                         case -3 -> System.out.println("Not enough arguments for operation : " + tri.args());
                         case 0 -> {
                             //start logout
-                            logout(authToken, serverProxy, tri, address);
-                            authToken = null;
                             shutdown = true;
+                            if (authToken != null) {
+                                logout(authToken, serverProxy, tri, address);
+                                authToken = null;
+                            }
                         }
-                        case 2 -> clientProxy.listFollowers();
+                        case 2 -> clientProxy.listFollowers(); //use the local data
                         case 100 -> {
-                            Triplet result = tryLogin(tri, address);
+                            Triplet result = tryLogin(tri, address); //connect with the server through TCP
                             if (result != null && result.token() != null) {
-                                authToken = result.token();
-                                multicastGroup = new InetSocketAddress(result.args(), result.op());
+                                authToken = result.token(); //save userToken
+                                multicastGroup = new InetSocketAddress(result.args(), result.op()); //save multicast coordinates
                                 serverProxy.registerForCallback(authToken, (ClientProxy) UnicastRemoteObject.exportObject(clientProxy, 0));
                                 System.out.println("Login Successful");
                             } else {
+                                //if token is null, login failed and error message is in args
                                 System.out.println("Login Failed.");
                                 if (result != null) System.out.println(result.args());
                             }
                         }
                         case -100 -> {
-                            Triplet result = tryRegister(tri, serverProxy);
+                            Triplet result = tryRegister(tri, serverProxy); //connect with the server through RMI
                             if (result != null && result.token() != null) {
-                                authToken = result.token();
-                                multicastGroup = new InetSocketAddress(result.args(), result.op());
+                                authToken = result.token(); //save userToken
+                                multicastGroup = new InetSocketAddress(result.args(), result.op()); //save multicast coordinates
                                 serverProxy.registerForCallback(authToken, (ClientProxy) UnicastRemoteObject.exportObject(clientProxy, 0));
                                 System.out.println("Registration Successful");
-                            } else {
+                            } else { //if result is null, registration failed
                                 System.out.println("Registration Failed.");
                             }
                         }
-                        default -> System.out.println(sendOpToServerNIO(tri, address));
+                        default -> System.out.println(sendOpToServerNIO(tri, address)); //send the command to the server through TCP
                     }
                 } catch (IOException e) {
                     shutdown = true;
-                    System.out.println("Error while connecting with the Server");
+                    System.out.println("Error while connecting with the Server.");
                     e.printStackTrace();
                 }
 
-
             }
 
+            //unload resources after the shutdown starts
+
+            if (group != null) group.close();
+            multicastExecutor.shutdown();
+
             try {
-                if (group != null) group.close();
-                multicastExecutor.shutdown();
                 //Make sure the remote will be unloaded and stop requesting
                 UnicastRemoteObject.unexportObject(clientProxy, true);
                 clientProxy = null;
                 System.gc();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } catch (ExecutionException | InterruptedException e) {
+            } catch (Exception ignored) {}
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 
 
@@ -166,22 +169,21 @@ public class ClientMain {
 
     private static String sendOpToServerNIO(Triplet instruction, SocketAddress address) throws IOException {
 
+        //if the user is not logged in yet, they can only log in from here
         if (instruction.token() == null && instruction.op() != 100) {
             return "You need to authenticate first.";
         }
 
-        try (SocketChannel serverChannel = SocketChannel.open()) {
+        try (SocketChannel serverChannel = SocketChannel.open(address)) {
 
             if (!serverChannel.isConnected()) {
-                serverChannel.connect(address);
                 while (!serverChannel.finishConnect()) {
-                    System.out.println("Connessione non terminata");
+                    System.out.println("Still connecting...");
                 }
             }
 
-            ObjectMapper mapper = new ObjectMapper();
-
-            byte[] toSend = mapper.writeValueAsString(instruction).getBytes(StandardCharsets.UTF_8);
+            //Serialize the triplet to json string to send it
+            byte[] toSend = new ObjectMapper().writeValueAsString(instruction).getBytes(StandardCharsets.UTF_8);
             ByteBuffer buffer = ByteBuffer.allocate(toSend.length);
 
             buffer.put(toSend);
@@ -192,10 +194,10 @@ public class ClientMain {
                 byteWritten += serverChannel.write(buffer);
             }
 
-            buffer.clear();
-
+            //switch to read the response
             if (instruction.op() > 0) {
                 String response = "";
+                buffer.clear();
                 int bytesRead = serverChannel.read(buffer);
                 while (bytesRead != -1) {
                     buffer.flip();
@@ -224,10 +226,11 @@ public class ClientMain {
     }
 
     public static Triplet tryRegister(Triplet input, ServerProxy proxy) throws RemoteException {
-        Triplet result = null;
-        String[] tokens = input.args().split(" ");
+        Triplet result = null; //result is a triplet with userToken and multicast coordinates
+        String[] tokens = input.args().split(" "); // tokenize the input into username password and tags
 
         if (tokens.length > 2) {
+            //check if the number of tags is correct and call the RMI method
             String[] tags = input.args().substring(1 + tokens[0].length() + tokens[1].length()).split(" ");
             if (tags.length >= 1 && tags.length <= 5) {
                 result = proxy.register(tokens[0], tokens[1], tags);
@@ -244,10 +247,11 @@ public class ClientMain {
         byte[] buf = new byte[128];
         DatagramPacket dp = new DatagramPacket(buf, buf.length);
 
+        //start listen on the multicast group
         try {
             group.receive(dp);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            return "Error while listening for wallet updates";
         }
 
         return new String(dp.getData()).trim();
