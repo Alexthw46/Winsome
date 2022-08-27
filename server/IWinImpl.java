@@ -23,8 +23,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import static server.ServerMain.*;
-import static server.data.TextValidator.isNumeric;
-import static server.data.TextValidator.validateContent;
+import static server.data.TextValidator.*;
 
 public class IWinImpl implements IWin {
 
@@ -162,7 +161,7 @@ public class IWinImpl implements IWin {
     @Override
     public String createPost(UUID author, String title, String content) {
         User user = userMap.getOrDefault(author, null);
-        if (user != null && TextValidator.validatePostTitle(title) && TextValidator.validateContent(content)) {
+        if (user != null && TextValidator.validatePostTitle(title) && TextValidator.validatePostContent(content)) {
             Post newPost = new Post(user.username(), getNewPostId(), title, content);
             user.blog().add(newPost);
             postLookup.put(newPost.postId(), newPost);
@@ -289,7 +288,7 @@ public class IWinImpl implements IWin {
     @Override
     public String addComment(int postId, String content, UUID token) {
         Post post = postLookup.getOrDefault(postId, null);
-        if (post != null && validateContent(content)) {
+        if (post != null && validateComment(content)) {
             Comment comment = new Comment(token, content, System.currentTimeMillis());
             post.comment(comment);
             return comment.format();
@@ -360,15 +359,18 @@ public class IWinImpl implements IWin {
             case 1 -> {
                 return listUsers(input.token());
             }
-            case 3 -> {
+            case 3 ->{
+                return listFollowing(input.token()).toString();
+            }
+            case 4 -> {
                 logger.add("follow request for " + input.args());
                 return followUser(userIdLookup.get(input.args()), input.token());
             }
-            case 4 -> {
+            case 5 -> {
                 logger.add("unfollow request for " + input.args());
                 return unfollowUser(userIdLookup.get(input.args()), input.token());
             }
-            case 5 -> {
+            case 6 -> {
                 return viewBlog(input.token());
             }
             case 10 -> {

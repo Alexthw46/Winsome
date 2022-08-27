@@ -18,6 +18,7 @@ public class CommandParser {
                 blog\s
                 list user \s
                 list followers \s
+                list following\s
                 show feed\s
                 show post <postId> \s
                 post <"Title"> <"Content"> | Title and Content needs to be enclosed between " " \s
@@ -52,11 +53,12 @@ public class CommandParser {
                     tokens.length > 1 ? switch (tokens[1]) {
                         case "user" -> 1;
                         case "followers" -> 2;
+                        case "following" -> 3;
                         default -> UNKNOWN_OP_CODE;
                     } : NOT_ENOUGH_ARGS_CODE;
-            case "follow" -> tokens.length > 1 ? 3 : NOT_ENOUGH_ARGS_CODE;
-            case "unfollow" -> tokens.length > 1 ? 4 : NOT_ENOUGH_ARGS_CODE;
-            case "blog" -> 5;
+            case "follow" -> tokens.length > 1 ? 4 : NOT_ENOUGH_ARGS_CODE;
+            case "unfollow" -> tokens.length > 1 ? 5 : NOT_ENOUGH_ARGS_CODE;
+            case "blog" -> 6;
             case "post" -> tokens.length > 2 ? 10 : NOT_ENOUGH_ARGS_CODE;
             case "delete" -> tokens.length > 1 ? 11 : NOT_ENOUGH_ARGS_CODE;
             case "rewin" -> tokens.length > 1 ? 12 : NOT_ENOUGH_ARGS_CODE;

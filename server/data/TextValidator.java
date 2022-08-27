@@ -14,15 +14,23 @@ public class TextValidator {
     }
 
     public static boolean validatePostTitle(String title) {
-        return title.length() >= 1 && title.length() <= 100;
+        return title.length() >= 1 && title.length() <= 20;
     }
 
     /**
-     * @param content for post or comment content
-     * @return valid if text contains at least one letter but less than 200
+     * @param content content of the post to check
+     * @return valid if text contains at least one letter but less than 500
      */
-    public static boolean validateContent(String content) {
-        return content.length() >= 1 && content.length() <= 200;
+    public static boolean validatePostContent(String content) {
+        return content.length() >= 1 && content.length() <= 500;
+    }
+
+    /**
+     * @param content content of the comment to check
+     * @return valid if text contains at least one letter but less than 100
+     */
+    public static boolean validateComment(String content) {
+        return content.length() >= 1 && content.length() <= 100;
     }
 
     public static boolean isNumeric(String str) {return str != null && str.matches("^-?[\\d.]+");}
