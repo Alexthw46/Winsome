@@ -152,6 +152,7 @@ public class ServerMain {
                             //special case for logout and shutdown
                             if (triplet.op() == 0) {
                                 client.close();
+                                outMap.remove(selectorId);
                                 key.cancel();
                                 System.out.println("Connection with client closed");
                                 if (triplet.args().equals("shutdown")) {
@@ -181,17 +182,24 @@ public class ServerMain {
                                 if (outMap.containsKey(selectorId) && outMap.get(selectorId).isDone()) {
                                     String out = outMap.get(selectorId).get();
                                     byte[] toEcho = out.getBytes(StandardCharsets.UTF_8);
-                                    ByteBuffer buffer = wrapper.newBuffer(toEcho.length);
 
+                                    //send the length of the message
+                                    ByteBuffer length = ByteBuffer.allocate(Integer.BYTES);
+                                    length.putInt(toEcho.length);
+                                    length.flip();
+                                    client.write(length);
+                                    length.clear();
+
+                                    //send the message
+                                    ByteBuffer buffer = wrapper.newBuffer(toEcho.length);
                                     buffer.clear();
                                     buffer.put(toEcho);
                                     buffer.flip();
                                     client.write(buffer);
 
-                                    //end connection
+                                    //back to read
                                     buffer.clear();
-                                    client.close();
-                                    outMap.remove(selectorId);
+                                    client.register(selector, SelectionKey.OP_READ, wrapper);
                                 }
                             } catch (ExecutionException | InterruptedException e) {
                                 e.printStackTrace();

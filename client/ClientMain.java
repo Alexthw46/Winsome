@@ -54,92 +54,100 @@ public class ClientMain {
             ExecutorService multicastExecutor = Executors.newSingleThreadExecutor();
             Future<String> multicastMessage = null;
 
-            while (!shutdown) {
+            try (SocketChannel serverChannel = SocketChannel.open(address)) {
 
-                //try join the multicast group with the data got by logging/registering
-                try {
-                    if (group == null && authToken != null && multicastGroup != null) {
-                        group = new MulticastSocket(multicastGroup.getPort());
-                        NetworkInterface netIf = NetworkInterface.getByName("walletUpdater");
-                        group.joinGroup(multicastGroup, netIf);
+                if (!serverChannel.isConnected()) {
+                    while (!serverChannel.finishConnect()) {
+                        System.out.println("Still connecting...");
                     }
-                } catch (IOException e) {
-                    System.out.println("Error while connecting to multicast group");
-                    throw new RuntimeException();
                 }
 
-                //if not listening, creates a task with future result
-                if (!isListeningMulticast && group != null) {
-                    MulticastSocket finalGroup = group;
-                    multicastMessage = multicastExecutor.submit(() -> listenMulticast(finalGroup));
-                    isListeningMulticast = true;
-                }
+                while (!shutdown) {
 
-                //if listening, check if a message have been received and print it
-                if (isListeningMulticast && multicastMessage != null && multicastMessage.isDone()) {
-                    String message = multicastMessage.get();
-                    isListeningMulticast = false;
-                    System.out.println("*  " + message + "   *");
-                }
-
-                //get the user input
-                Triplet tri = CommandParser.getAndParseCommand(scanner, authToken);
-                int op = tri.op();
-
-                //block login & register if the user is already authenticated
-                if ((op == 100 || op == -100) && authToken != null) {
-                    System.out.println("An user is already logged in, logout first.");
-                    continue;
-                }
-
-
-                try {
-                    //execute the command given
-                    switch (op) {
-                        case -1 -> CommandParser.printHelp();
-                        case -2 -> System.out.println("Invalid operation : " + tri.args());
-                        case -3 -> System.out.println("Not enough arguments for operation : " + tri.args());
-                        case 0 -> {
-                            //start logout
-                            shutdown = true;
-                            if (authToken != null) {
-                                logout(authToken, serverProxy, tri, address);
-                                authToken = null;
-                            }
+                    //try join the multicast group with the data got by logging/registering
+                    try {
+                        if (group == null && authToken != null && multicastGroup != null) {
+                            group = new MulticastSocket(multicastGroup.getPort());
+                            NetworkInterface netIf = NetworkInterface.getByName("walletUpdater");
+                            group.joinGroup(multicastGroup, netIf);
                         }
-                        case 2 -> clientProxy.listFollowers(); //use the local data
-                        case 100 -> {
-                            Triplet result = tryLogin(tri, address); //connect with the server through TCP
-                            if (result != null && result.token() != null) {
-                                authToken = result.token(); //save userToken
-                                multicastGroup = new InetSocketAddress(result.args(), result.op()); //save multicast coordinates
-                                serverProxy.registerForCallback(authToken, (ClientProxy) UnicastRemoteObject.exportObject(clientProxy, 0));
-                                System.out.println("Login Successful");
-                            } else {
-                                //if token is null, login failed and error message is in args
-                                System.out.println("Login Failed.");
-                                if (result != null) System.out.println(result.args());
-                            }
-                        }
-                        case -100 -> {
-                            Triplet result = tryRegister(tri, serverProxy); //connect with the server through RMI
-                            if (result != null && result.token() != null) {
-                                authToken = result.token(); //save userToken
-                                multicastGroup = new InetSocketAddress(result.args(), result.op()); //save multicast coordinates
-                                serverProxy.registerForCallback(authToken, (ClientProxy) UnicastRemoteObject.exportObject(clientProxy, 0));
-                                System.out.println("Registration Successful");
-                            } else { //if result is null, registration failed
-                                System.out.println("Registration Failed.");
-                            }
-                        }
-                        default -> System.out.println(sendOpToServerNIO(tri, address)); //send the command to the server through TCP
+                    } catch (IOException e) {
+                        System.out.println("Error while connecting to multicast group");
+                        throw new RuntimeException();
                     }
-                } catch (IOException e) {
-                    shutdown = true;
-                    System.out.println("Error while connecting with the Server.");
-                    e.printStackTrace();
-                }
 
+                    //if not listening, creates a task with future result
+                    if (!isListeningMulticast && group != null) {
+                        MulticastSocket finalGroup = group;
+                        multicastMessage = multicastExecutor.submit(() -> listenMulticast(finalGroup));
+                        isListeningMulticast = true;
+                    }
+
+                    //if listening, check if a message have been received and print it
+                    if (isListeningMulticast && multicastMessage != null && multicastMessage.isDone()) {
+                        String message = multicastMessage.get();
+                        isListeningMulticast = false;
+                        System.out.println("*  " + message + "   *");
+                    }
+
+                    //get the user input
+                    Triplet tri = CommandParser.getAndParseCommand(scanner, authToken);
+                    int op = tri.op();
+
+                    //block login & register if the user is already authenticated
+                    if ((op == 100 || op == -100) && authToken != null) {
+                        System.out.println("An user is already logged in, logout first.");
+                        continue;
+                    }
+
+                    try {
+                        //execute the command given
+                        switch (op) {
+                            case -1 -> CommandParser.printHelp();
+                            case -2 -> System.out.println("Invalid operation : " + tri.args());
+                            case -3 -> System.out.println("Not enough arguments for operation : " + tri.args());
+                            case 0 -> {
+                                //start logout
+                                shutdown = true;
+                                if (authToken != null) {
+                                    logout(authToken, serverProxy, tri, serverChannel);
+                                    authToken = null;
+                                }
+                            }
+                            case 2 -> clientProxy.listFollowers(); //use the local data
+                            case 100 -> {
+                                Triplet result = tryLogin(tri, serverChannel); //connect with the server through TCP
+                                if (result != null && result.token() != null) {
+                                    authToken = result.token(); //save userToken
+                                    multicastGroup = new InetSocketAddress(result.args(), result.op()); //save multicast coordinates
+                                    serverProxy.registerForCallback(authToken, (ClientProxy) UnicastRemoteObject.exportObject(clientProxy, 0));
+                                    System.out.println("Login Successful");
+                                } else {
+                                    //if token is null, login failed and error message is in args
+                                    System.out.println("Login Failed.");
+                                    if (result != null) System.out.println(result.args());
+                                }
+                            }
+                            case -100 -> {
+                                Triplet result = tryRegister(tri, serverProxy); //connect with the server through RMI
+                                if (result != null && result.token() != null) {
+                                    authToken = result.token(); //save userToken
+                                    multicastGroup = new InetSocketAddress(result.args(), result.op()); //save multicast coordinates
+                                    serverProxy.registerForCallback(authToken, (ClientProxy) UnicastRemoteObject.exportObject(clientProxy, 0));
+                                    System.out.println("Registration Successful");
+                                } else { //if result is null, registration failed
+                                    System.out.println("Registration Failed.");
+                                }
+                            }
+                            default ->
+                                    System.out.println(sendOpToServerNIO(tri, serverChannel)); //send the command to the server through TCP
+                        }
+                    } catch (IOException e) {
+                        shutdown = true;
+                        System.out.println("Error while connecting with the Server.");
+                        e.printStackTrace();
+                    }
+                }
             }
 
             //unload resources after the shutdown starts
@@ -152,7 +160,8 @@ public class ClientMain {
                 UnicastRemoteObject.unexportObject(clientProxy, true);
                 clientProxy = null;
                 System.gc();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -161,26 +170,19 @@ public class ClientMain {
     }
 
 
-    private static void logout(UUID authToken, ServerProxy serverProxy, Triplet tri, SocketAddress address) throws IOException {
+    private static void logout(UUID authToken, ServerProxy serverProxy, Triplet tri, SocketChannel serverChannel) throws IOException {
         serverProxy.unregisterForCallback(authToken);
-        sendOpToServerNIO(tri, address);
+        sendOpToServerNIO(tri, serverChannel);
         System.out.println("Logging out from account");
     }
 
-    private static String sendOpToServerNIO(Triplet instruction, SocketAddress address) throws IOException {
+    private static String sendOpToServerNIO(Triplet instruction, SocketChannel serverChannel) throws IOException {
 
         //if the user is not logged in yet, they can only log in from here
         if (instruction.token() == null && instruction.op() != 100) {
             return "You need to authenticate first.";
         }
 
-        try (SocketChannel serverChannel = SocketChannel.open(address)) {
-
-            if (!serverChannel.isConnected()) {
-                while (!serverChannel.finishConnect()) {
-                    System.out.println("Still connecting...");
-                }
-            }
 
             //Serialize the triplet to json string to send it
             byte[] toSend = new ObjectMapper().writeValueAsString(instruction).getBytes(StandardCharsets.UTF_8);
@@ -194,28 +196,37 @@ public class ClientMain {
                 byteWritten += serverChannel.write(buffer);
             }
 
-            //switch to read the response
+            //switch to read the response if needed
             if (instruction.op() > 0) {
+
+                //read the size of the incoming response
+                ByteBuffer sizeBuf = ByteBuffer.allocate(Integer.BYTES);
+                serverChannel.read(sizeBuf);
+                sizeBuf.flip();
+                int bytesToRead = sizeBuf.getInt();
+
+                //read the response from the server
                 String response = "";
-                buffer = ByteBuffer.allocate(1024);
-                int bytesRead = serverChannel.read(buffer);
-                while (bytesRead != -1) {
+                buffer = ByteBuffer.allocate(bytesToRead);
+                int bytesRead = 0;
+                while (bytesToRead > 0) {
+                    bytesRead = serverChannel.read(buffer);
+                    bytesToRead =- bytesRead;
                     buffer.flip();
                     byte[] toConvert = new byte[bytesRead];
                     buffer.get(toConvert);
                     String received = new String(toConvert, StandardCharsets.UTF_8).trim();
                     response = response.concat(received);
                     buffer.clear();
-                    bytesRead = serverChannel.read(buffer);
                 }
                 return response;
             }
-        }
+
         return "";
     }
 
-    public static Triplet tryLogin(Triplet input, SocketAddress address) throws IOException {
-        String result = sendOpToServerNIO(input, address);
+    public static Triplet tryLogin(Triplet input, SocketChannel serverChannel) throws IOException {
+        String result = sendOpToServerNIO(input, serverChannel);
         if (result != null && !result.isBlank()) {
             ObjectMapper mapper = new ObjectMapper();
             return mapper.readValue(result, Triplet.class);
