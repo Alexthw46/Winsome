@@ -15,9 +15,15 @@ public record Rating(UUID user, int rate, long timestamp) {
      */
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof Rating rating && this.user.equals(rating.user);
+        return obj instanceof Rating rating && rating.hashCode() == this.hashCode();
+    }
+
+    @Override
+    public int hashCode() {
+        return user.hashCode();
     }
 
     public record Pair(int pos, int neg) {
     }
+
 }

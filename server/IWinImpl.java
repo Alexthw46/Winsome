@@ -20,9 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static server.ServerMain.*;
 import static server.data.TextValidator.isNumeric;
+import static server.data.TextValidator.validateContent;
 
 public class IWinImpl implements IWin {
 
@@ -160,7 +162,7 @@ public class IWinImpl implements IWin {
     @Override
     public String createPost(UUID author, String title, String content) {
         User user = userMap.getOrDefault(author, null);
-        if (user != null && TextValidator.validatePostTitle(title) && TextValidator.validatePostContent(content)) {
+        if (user != null && TextValidator.validatePostTitle(title) && TextValidator.validateContent(content)) {
             Post newPost = new Post(user.username(), getNewPostId(), title, content);
             user.blog().add(newPost);
             postLookup.put(newPost.postId(), newPost);
@@ -268,10 +270,11 @@ public class IWinImpl implements IWin {
     public String ratePost(int idPost, UUID user, int rate) {
         Post post = postLookup.getOrDefault(idPost, null);
         if (post != null && !userIdLookup.get(post.username()).equals(user)) {
-            post.rate(user, rate);
-            return "success";
+            if (post.rate(user, rate)) {
+                return "Success";
+            }else return "Already rated this post.";
         }
-        return "fail";
+        return "Post not found or permission denied.";
     }
 
 
@@ -286,12 +289,12 @@ public class IWinImpl implements IWin {
     @Override
     public String addComment(int postId, String content, UUID token) {
         Post post = postLookup.getOrDefault(postId, null);
-        if (post != null) {
+        if (post != null && validateContent(content)) {
             Comment comment = new Comment(token, content, System.currentTimeMillis());
             post.comment(comment);
             return comment.format();
         }
-        return "fail";
+        return "Post id not found.";
     }
 
     /**
@@ -318,6 +321,7 @@ public class IWinImpl implements IWin {
 
         String randomOrg = "https://www.random.org/decimal-fractions/?num=1&dec=10&col=1&format=plain&rnd=new";
 
+        //send a http request to RANDOM.ORG to simulate coin value fluctuation
         try {
             HttpRequest request = HttpRequest.newBuilder(new URI(randomOrg)).GET().build();
             HttpClient client = HttpClient.newHttpClient();
@@ -325,17 +329,20 @@ public class IWinImpl implements IWin {
             if (response.statusCode() == 200) {
                 String toParse = response.body();
                 conversionRatio = Float.parseFloat(toParse);
+                logger.add("Current conversion ratio: " + response.body());
             } else {
-                System.out.println("Current conversion ratio: " + response.body());
+                System.out.println(response.body());
             }
         } catch (URISyntaxException | IOException | InterruptedException e) {
             return "Conversion Service not available";
         }
 
-
         float bitcoins = winCoins * conversionRatio;
         return String.format("%.2f Bitcoins\n", bitcoins);
     }
+
+    //pattern to check text between "
+    static final Pattern pattern = Pattern.compile("\"(.*?)\"");
 
     /**
      * Execute the operation corresponding to the opcode given.
@@ -402,6 +409,7 @@ public class IWinImpl implements IWin {
 
                     int postId = Integer.parseInt(split[0].trim());
                     int rate = Integer.parseInt(split[1].trim());
+                    if (Math.abs(rate) != 1) return "Only valid ratings are 1 and -1";
                     return ratePost(postId, input.token(), rate);
                 } catch (NumberFormatException e) {
                     return "Arguments error, not a number.";

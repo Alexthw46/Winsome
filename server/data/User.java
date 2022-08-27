@@ -3,12 +3,13 @@ package server.data;
 import server.ServerMain;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArraySet;
 
-public record User(UUID userId, String username, String password, Set<String> tags, Set<Post> blog, Set<UUID> followedUsers, NumberWrapper<Float> wallet) {
+public record User(UUID userId, String username, String password, Set<String> tags, CopyOnWriteArraySet<Post> blog, CopyOnWriteArraySet<UUID> followedUsers, NumberWrapper<Float> wallet) {
 
     //for registration
     public User(UUID userId, String username, String password, Set<String> tags){
-        this(userId, username, password, tags, new HashSet<>(), new HashSet<>(), new NumberWrapper<>(0F));
+        this(userId, username, password, tags, new CopyOnWriteArraySet<>(), new CopyOnWriteArraySet<>(), new NumberWrapper<>(0F));
     }
 
     @Override
@@ -24,13 +25,16 @@ public record User(UUID userId, String username, String password, Set<String> ta
         this.followedUsers.remove(idFollower);
     }
 
+    /**
+     * Overridden record getter to filter out removed posts from the blog
+     */
     @Override
-    public synchronized Set<Post> blog() {
+    public synchronized CopyOnWriteArraySet<Post> blog() {
         blog.removeIf(p -> !ServerMain.postLookup.containsKey(p.postId()));
         return blog;
     }
 
-    //Only used to restore data, when the lookup is not filled yet
+    //Getter used only to restore data, when the post lookup is not filled yet
     public Set<Post> blogUnchecked(){
         return blog;
     }

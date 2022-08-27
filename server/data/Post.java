@@ -14,16 +14,24 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * @param ratings list of ratings left on the post, thread-safe set (a user can only rate once)
  * @param timesChecked times the post have been checked for wincoins rewards
  */
-public record Post(String username, int postId, String title, String content, List<Comment> comments, Set<Rating> ratings, NumberWrapper<Integer> timesChecked) implements Comparable<Post>{
+public record Post(String username, int postId, String title, String content, CopyOnWriteArrayList<Comment> comments, CopyOnWriteArraySet<Rating> ratings, NumberWrapper<Integer> timesChecked) implements Comparable<Post>{
 
     public Post(String userId, int postId, String title, String content){
         this(userId, postId, title, content, new CopyOnWriteArrayList<>(), new CopyOnWriteArraySet<>(), new NumberWrapper<>(0));
     }
 
-    public synchronized void rate(UUID user, int voto) {
-        this.ratings.add(new Rating(user, voto, System.currentTimeMillis()));
+    /**
+     * Synchronized method to add a rating
+     * @param vote rating to add
+     */
+    public synchronized boolean rate(UUID user, int vote) {
+        return this.ratings.add(new Rating(user, vote, System.currentTimeMillis()));
     }
 
+    /**
+     * Synchronized method to add a comment
+     * @param comment comment to add
+     */
     public synchronized void comment(Comment comment){
         this.comments().add(comment);
     }
@@ -35,10 +43,10 @@ public record Post(String username, int postId, String title, String content, Li
         int pos = 0;
         int neg = 0;
         for (Rating like : ratings){
-            if (like.rate() < 0){
-                neg++;
-            }else{
+            if (like.rate() > 0) {
                 pos++;
+            } else {
+                neg++;
             }
         }
         return new Rating.Pair(pos, neg);
@@ -76,11 +84,14 @@ public record Post(String username, int postId, String title, String content, Li
      * @return formatted post as String
      */
     public String format(){
+
         Rating.Pair rating = totalRating();
         String formattedComments = "\n";
+
         for (Comment comment : comments()) {
             formattedComments = comment.format().concat(formattedComments);
         }
+
         if (comments.size() == 0) formattedComments = "No comments yet.\n";
 
         return  "Titolo: " + title() + '\n' +

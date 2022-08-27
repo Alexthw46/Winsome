@@ -1,0 +1,11 @@
+{
+  "userId" : "337cf349-a845-45de-b5e0-784985c066c6",
+  "username" : "CatLover70",
+  "password" : "pGatti",
+  "tags" : [ "animali", "italia", "gatti" ],
+  "blog" : [ ],
+  "followedUsers" : [ "a3ae6d4b-3298-41be-8fa2-cf2b72cfa668" ],
+  "wallet" : {
+    "value" : 0.25
+  }
+}
