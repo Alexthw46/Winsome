@@ -104,7 +104,7 @@ public class ServerMain {
 
                 //try to select keys, blocking op with timeout to let the points award check run
                 try {
-                    selector.select(2000);
+                    selector.select(config.selectTimeout());
                 } catch (IOException ex) {
                     ex.printStackTrace();
                     break;
@@ -245,9 +245,10 @@ public class ServerMain {
     }
 
     public static List<String> getFollowersFromUser(UUID userId) {
+        String username = userMap.get(userId).username();
         List<String> followers = new ArrayList<>();
         for (User user : userMap.values()) {
-            if (user.followedUsers().contains(userId)) {
+            if (user.followedUsers().contains(username)) {
                 followers.add(user.username());
             }
         }

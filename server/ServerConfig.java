@@ -7,7 +7,9 @@ public record ServerConfig(
         Integer UDPPort,
         String RegHost,
         Integer RegPort,
-
+        Float AuthorReward,
         Long PointsAwardInterval,
-        Float AuthorReward
-        ){}
+        Long selectTimeout
+        ){
+
+}

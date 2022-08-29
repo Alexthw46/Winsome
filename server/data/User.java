@@ -7,7 +7,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public record User(UUID userId, String username, String password, Set<String> tags, CopyOnWriteArraySet<Post> blog, CopyOnWriteArraySet<UUID> followedUsers, NumberWrapper<Float> wallet) {
 
-    //for registration
+    //for registration only
     public User(UUID userId, String username, String password, Set<String> tags){
         this(userId, username, password, tags, new CopyOnWriteArraySet<>(), new CopyOnWriteArraySet<>(), new NumberWrapper<>(0F));
     }

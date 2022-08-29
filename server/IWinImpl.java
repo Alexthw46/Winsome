@@ -178,10 +178,10 @@ public class IWinImpl implements IWin {
     }
 
     /**
-     * use: show feed of the requesting user
+     * use: show feed
      *
      * @param token id of the requesting user
-     * @return feed
+     * @return formatted feed, listing <post id | post author | post title>
      */
     @Override
     public String showFeed(UUID token) {
@@ -200,6 +200,21 @@ public class IWinImpl implements IWin {
 
         return feed;
     }
+
+    /**
+     * @param postId id of the post
+     * @param userId id of the user
+     * @return true if the post is present in one of the blog of the users followed by user
+     */
+    public boolean isInFeed(int postId, UUID userId){
+        for (User user : listFollowing(userId).stream().map(userMap::get).toList()) {
+            for (Post p : user.blog()){
+                if (p.postId() == postId) return true;
+            }
+        }
+        return false;
+    }
+
 
     /**
      * use: show post <id>
@@ -268,12 +283,12 @@ public class IWinImpl implements IWin {
     @Override
     public String ratePost(int idPost, UUID user, int rate) {
         Post post = postLookup.getOrDefault(idPost, null);
-        if (post != null && !userIdLookup.get(post.username()).equals(user)) {
+        if (post != null && !userIdLookup.get(post.username()).equals(user) && isInFeed(idPost, user)) {
             if (post.rate(user, rate)) {
                 return "Success";
             }else return "Already rated this post.";
         }
-        return "Post not found or permission denied.";
+        return "Post not found in your feed or permission denied.";
     }
 
 
@@ -288,12 +303,12 @@ public class IWinImpl implements IWin {
     @Override
     public String addComment(int postId, String content, UUID token) {
         Post post = postLookup.getOrDefault(postId, null);
-        if (post != null && validateComment(content)) {
+        if (post != null && validateComment(content) && isInFeed(postId, token)) {
             Comment comment = new Comment(token, content, System.currentTimeMillis());
             post.comment(comment);
             return comment.format();
         }
-        return "Post id not found.";
+        return "Post id not found in your feed.";
     }
 
     /**
