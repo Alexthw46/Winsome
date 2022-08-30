@@ -1,4 +1,4 @@
 {
-  "lastCheck" : 1661604379727,
-  "logs" : [ "Luca earned 0.0 from post n. 1\n", "Giulia earned 0.0 from post n. 2\n", "CatLover70 earned 0.0 from post n. 2\n", "Giulia earned 0.0 from post n. 3\n", "Luca earned 0.0 from post n. 3\n", "WinCoins awarded\n at: 1661604379723", "Executing : 100 | args: Luca pLuca da: null\n", "User Luca logged in.", "Executing : 20 | args: feed da: 6d75166b-44e6-4546-8ba9-d024ffab7c13\n" ]
+  "lastCheck" : 1661773297832,
+  "logs" : [ "WinCoins awarded\n at: 1661773297828", "Registered new user: user", "Executing : 10 | args: \"Test of v2\" \"This time is different\" da: 5e803152-e6ad-4870-a087-04705e031ba6\n", "Executing : 20 | args: feed da: 5e803152-e6ad-4870-a087-04705e031ba6\n", "Executing : 6 | args:  da: 5e803152-e6ad-4870-a087-04705e031ba6\n" ]
 }

@@ -76,18 +76,18 @@ public class ClientMain {
                         throw new RuntimeException();
                     }
 
-                    //if not listening, creates a task with future result
-                    if (!isListeningMulticast && group != null) {
-                        MulticastSocket finalGroup = group;
-                        multicastMessage = multicastExecutor.submit(() -> listenMulticast(finalGroup));
-                        isListeningMulticast = true;
-                    }
-
                     //if listening, check if a message have been received and print it
                     if (isListeningMulticast && multicastMessage != null && multicastMessage.isDone()) {
                         String message = multicastMessage.get();
                         isListeningMulticast = false;
                         System.out.println("*  " + message + "   *");
+                    }
+
+                    //if not listening, creates a task with future result
+                    if (!isListeningMulticast && group != null) {
+                        MulticastSocket finalGroup = group;
+                        multicastMessage = multicastExecutor.submit(() -> listenMulticast(finalGroup));
+                        isListeningMulticast = true;
                     }
 
                     //get the user input
@@ -114,7 +114,11 @@ public class ClientMain {
                                     authToken = null;
                                 }
                             }
-                            case 2 -> clientProxy.listFollowers(); //use the local data
+                            case 2 -> {
+                                if (authToken != null) //use the local data
+                                    clientProxy.listFollowers();
+                                else System.out.println("You need to authenticate first.");
+                            }
                             case 100 -> {
                                 Triplet result = tryLogin(tri, serverChannel); //connect with the server through TCP
                                 if (result != null && result.token() != null) {
@@ -139,8 +143,7 @@ public class ClientMain {
                                     System.out.println("Registration Failed.");
                                 }
                             }
-                            default ->
-                                    System.out.println(sendOpToServerNIO(tri, serverChannel)); //send the command to the server through TCP
+                            default -> System.out.println(sendOpToServerNIO(tri, serverChannel)); //send the command to the server through TCP
                         }
                     } catch (IOException e) {
                         shutdown = true;
@@ -182,7 +185,6 @@ public class ClientMain {
         if (instruction.token() == null && instruction.op() != 100) {
             return "You need to authenticate first.";
         }
-
 
             //Serialize the triplet to json string to send it
             byte[] toSend = new ObjectMapper().writeValueAsString(instruction).getBytes(StandardCharsets.UTF_8);
@@ -238,7 +240,7 @@ public class ClientMain {
 
     public static Triplet tryRegister(Triplet input, ServerProxy proxy) throws RemoteException {
         Triplet result = null; //result is a triplet with userToken and multicast coordinates
-        String[] tokens = input.args().split(" "); // tokenize the input into username password and tags
+        String[] tokens = input.args().split(" "); // tokenize the input into author password and tags
 
         if (tokens.length > 2) {
             //check if the number of tags is correct and call the RMI method

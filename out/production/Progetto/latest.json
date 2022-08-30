@@ -1,4 +1,4 @@
 {
-  "lastCheck" : 1661603832386,
-  "logs" : [ "Executing : 100 | args: Luca pLuca da: null\n", "User Luca logged in.", "Executing : 21 | args: 4 da: 6d75166b-44e6-4546-8ba9-d024ffab7c13\n", "Executing : 20 | args: feed da: 6d75166b-44e6-4546-8ba9-d024ffab7c13\n", "Executing : 6 | args:  da: 6d75166b-44e6-4546-8ba9-d024ffab7c13\n", "Executing : 31 | args: btc da: 6d75166b-44e6-4546-8ba9-d024ffab7c13\n", "Current conversion ratio: 0.8554636194\n", "Executing : 30 | args:  da: 6d75166b-44e6-4546-8ba9-d024ffab7c13\n" ]
+  "lastCheck" : 1661773297832,
+  "logs" : [ "WinCoins awarded\n at: 1661773297828", "Registered new user: user", "Executing : 10 | args: \"Test of v2\" \"This time is different\" da: 5e803152-e6ad-4870-a087-04705e031ba6\n", "Executing : 20 | args: feed da: 5e803152-e6ad-4870-a087-04705e031ba6\n", "Executing : 6 | args:  da: 5e803152-e6ad-4870-a087-04705e031ba6\n" ]
 }

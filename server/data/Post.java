@@ -6,7 +6,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
- * @param username author username
+ * @param author author of the post
  * @param postId id of the post
  * @param title title of the post
  * @param content content of the post
@@ -14,7 +14,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * @param ratings list of ratings left on the post, thread-safe set (a user can only rate once)
  * @param timesChecked times the post have been checked for wincoins rewards
  */
-public record Post(String username, int postId, String title, String content, CopyOnWriteArrayList<Comment> comments, CopyOnWriteArraySet<Rating> ratings, NumberWrapper<Integer> timesChecked) implements Comparable<Post>{
+public record Post(String author, int postId, String title, String content, CopyOnWriteArrayList<Comment> comments, CopyOnWriteArraySet<Rating> ratings, NumberWrapper<Integer> timesChecked) implements Comparable<Post>{
 
     public Post(String userId, int postId, String title, String content){
         this(userId, postId, title, content, new CopyOnWriteArrayList<>(), new CopyOnWriteArraySet<>(), new NumberWrapper<>(0));
@@ -24,7 +24,7 @@ public record Post(String username, int postId, String title, String content, Co
      * Synchronized method to add a rating
      * @param vote rating to add
      */
-    public synchronized boolean rate(UUID user, int vote) {
+    public synchronized boolean rate(String user, int vote) {
         return this.ratings.add(new Rating(user, vote, System.currentTimeMillis()));
     }
 
@@ -94,10 +94,16 @@ public record Post(String username, int postId, String title, String content, Co
 
         if (comments.size() == 0) formattedComments = "No comments yet.\n";
 
-        return  "Titolo: " + title() + '\n' +
-                "Contenuto: " + content() + '\n' +
-                "Voti: " + rating.pos() + " positivi, " + rating.neg() + " negativi" + '\n' +
-                "Commenti:\n" + formattedComments;
+        return "Titolo: " + title() + '\n' +
+               "Contenuto: " + content() + '\n' +
+               "Voti: " + rating.pos() + " positivi, " + rating.neg() + " negativi" + '\n' +
+               "Commenti:\n" + formattedComments;
+    }
+    /**
+     * @return formatted post as String, adding the author to distinguish rewinned posts in blog
+     */
+    public String formatR(){
+        return "Autore: " + author() + '\n' + format();
     }
 
     /**
@@ -112,8 +118,8 @@ public record Post(String username, int postId, String title, String content, Co
     /**
      * @return List of the curators of the post, aka the users who left a positive rating
      */
-    public Collection<UUID> postCurators() {
-        List<UUID> curators = new ArrayList<>();
+    public Collection<String> postCurators() {
+        List<String> curators = new ArrayList<>();
         for (Rating rating: ratings){
             //curators are the users that left a like
            if (rating.rate() > 0) curators.add(rating.user());

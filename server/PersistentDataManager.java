@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class PersistentDataManager {
-    static final ServerConfig defaults = new ServerConfig("localhost", "239.255.32.32", 1080, 44444, "AUTHENTICATOR", 10,  0.75F,100L, 2000L);
+    static final ServerConfig defaults = new ServerConfig("localhost", "239.255.32.32", 1080, 44444, "AUTHENTICATOR", 1846,  0.75F,100L, 2000L);
 
     public static boolean initialize() {
 
@@ -32,6 +32,10 @@ public class PersistentDataManager {
             return false;
         }
 
+        if (ServerMain.config.AuthorReward() > 1 || ServerMain.config.AuthorReward() <= 0){
+            System.out.println("Error while loading configs, AuthorReward needs to be a decimal between 0 and 1. Current value: " + ServerMain.config.AuthorReward());
+            return false;
+        }
 
         JsonFactory factory = new JsonFactory();
 
@@ -53,12 +57,11 @@ public class PersistentDataManager {
                         while (parser.nextToken() == JsonToken.START_OBJECT) {
                             restoreUser = parser.readValueAs(User.class);
 
-                            ServerMain.userMap.put(restoreUser.userId(), restoreUser);
-                            ServerMain.userIdLookup.put(restoreUser.username(), restoreUser.userId());
+                            IWinImpl.userMap.put(restoreUser.username(), restoreUser);
                             for (Post restorePost : restoreUser.blogUnchecked()) {
                                 //ignore rewinned posts
-                                if (restoreUser.username().equals(restorePost.username())) {
-                                    ServerMain.postLookup.put(restorePost.postId(), restorePost);
+                                if (restoreUser.username().equals(restorePost.author())) {
+                                    IWinImpl.postLookup.put(restorePost.postId(), restorePost);
                                     IWinImpl.postCounter = Math.max(IWinImpl.postCounter, restorePost.postId());
                                 }
                             }
@@ -114,7 +117,7 @@ public class PersistentDataManager {
 
         }
 
-        for (User user : ServerMain.userMap.values()) {
+        for (User user : IWinImpl.userMap.values()) {
             try (JsonGenerator generator = factory.createGenerator(
                     new File(savedUserDataPath + File.separatorChar + user.username() + ".json"), JsonEncoding.UTF8)
             ) {
@@ -126,7 +129,7 @@ public class PersistentDataManager {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println("Saving: " + user.userId() + " | " + user.username() + '\n');
+            System.out.println("Saving: " + user.username() + '\n');
         }
 
         savedDataDir = new File(savedDataPath);

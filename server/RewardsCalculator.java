@@ -8,21 +8,27 @@ import java.util.*;
 
 public class RewardsCalculator {
 
-    public static List<CoinReward> getPointsFromPost(Post p, long lastCheckTime, float authorPercentage) {
+    /**
+     * @param postToCheck post
+     * @param lastCheckTime timestamp of the last check
+     * @param authorPercentage percentage of points for the post author
+     * @return set of CoinRewards, pairing each username with the amount of coins to award
+     */
+    public static Set<CoinReward> getPointsFromPost(Post postToCheck, long lastCheckTime, float authorPercentage) {
         long total = 0;
-        UUID author = ServerMain.userIdLookup.get(p.username());
+        String author = postToCheck.author();
 
         //get new likes and who assigned them
-        Set<UUID> curators = new HashSet<>(p.postCurators());
-        Rating.Pair likes = p.newTotalRating(lastCheckTime);
+        Set<String> curators = new HashSet<>(postToCheck.postCurators());
+        Rating.Pair likes = postToCheck.newTotalRating(lastCheckTime);
         double pointsFromLikes = Math.log(1 + Math.max(0, likes.pos() - likes.neg()));
         //get new comments and who wrote them
         double pointsFromComments = 0;
-        Map<UUID, Integer> newComments = new HashMap<>();
-        for (Comment c : p.comments()) {
-            if (!c.userId().equals(author) && c.timestamp() > lastCheckTime) {
-                newComments.put(c.userId(), newComments.getOrDefault(c.userId(), 0) + 1);
-                curators.add(c.userId());
+        Map<String, Integer> newComments = new HashMap<>();
+        for (Comment c : postToCheck.comments()) {
+            if (!c.author().equals(author) && c.timestamp() > lastCheckTime) {
+                newComments.put(c.author(), newComments.getOrDefault(c.author(), 0) + 1);
+                curators.add(c.author());
             }
         }
         for (Integer times : newComments.values()) {
@@ -31,23 +37,29 @@ public class RewardsCalculator {
         pointsFromComments = Math.log(1 + pointsFromComments);
 
         //update post checks counter
-        p.timesChecked().setValue(p.timesChecked().getValue() + 1);
+        postToCheck.timesChecked().setValue(postToCheck.timesChecked().getValue() + 1);
 
         //compute the total points and split them between author and curators
-        total += (pointsFromComments + pointsFromLikes) / p.timesChecked().getValue();
+        total += (pointsFromComments + pointsFromLikes) / postToCheck.timesChecked().getValue();
 
         float authorReward = authorPercentage * total;
         float curatorReward = (1-authorPercentage) * total / Math.max(curators.size(), 1);
 
-        List<CoinReward> result = new ArrayList<>();
+        Set<CoinReward> result = new HashSet<>();
         result.add(new CoinReward(author, authorReward));
-        for (UUID c : curators){
+        for (String c : curators){
             result.add(new CoinReward(c, curatorReward));
         }
 
         return result;
     }
 
-    public record CoinReward(UUID user, float reward) {}
+    public record CoinReward(String user, float reward) {
+        @Override
+        public int hashCode() {
+            return user.hashCode();
+        }
+    }
+
 
 }

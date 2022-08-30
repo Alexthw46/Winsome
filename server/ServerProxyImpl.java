@@ -13,24 +13,24 @@ import java.util.stream.Collectors;
 
 import static server.data.TextValidator.validatePassword;
 import static server.data.TextValidator.validateUsername;
-import static server.ServerMain.userIdLookup;
-import static server.ServerMain.userMap;
+import static server.IWinImpl.userIdLookup;
+import static server.IWinImpl.userMap;
 
 public class ServerProxyImpl extends RemoteServer implements ServerProxy {
 
     /**
-     * use: register <username> <password> <tags>
+     * use: register <author> <password> <tags>
      *
      * @return triplet with <userToken multicastPort multicastAddress>, userToken is null if registration fails
      */
     @Override
     public synchronized Triplet register(String username, String password, String... tagList) {
         UUID id = null;
-        if (!userIdLookup.containsKey(username) && validatePassword(password) && validateUsername(username)) {
+        if (!userMap.containsKey(username) && validatePassword(password) && validateUsername(username)) {
             id = UUID.randomUUID();
-            User newUser = new User(id, username, password, Arrays.stream(tagList).filter(s -> !s.isEmpty()).collect(Collectors.toUnmodifiableSet()));
-            userIdLookup.put(username, id);
-            userMap.put(id, newUser);
+            User newUser = new User(username, password, Arrays.stream(tagList).filter(s -> !s.isEmpty()).collect(Collectors.toUnmodifiableSet()));
+            userMap.put(username, newUser);
+            userIdLookup.put(id, username);
             ServerMain.logger.add("Registered new user: " + username);
         }
         return new Triplet(ServerMain.config.MulticastAddress(), ServerMain.config.UDPPort(), id);
@@ -48,27 +48,31 @@ public class ServerProxyImpl extends RemoteServer implements ServerProxy {
     public synchronized void registerForCallback(UUID token, ClientProxy callbackClient) throws RemoteException {
         if (!clients.containsKey(token)) {
             clients.put(token, callbackClient);
-            tryNotifyFollowersUpdate(token);
-            System.out.println("New client registered for callbacks.");
+            tryNotifyFollowersUpdate(userIdLookup.get(token));
+            System.out.println("New client registered for callbacks :"+ token +".");
         } else throw new RemoteException("Client already registered.");
     }
 
     /* annulla registrazione per il callback */
     public synchronized void unregisterForCallback(UUID token) throws RemoteException {
         if (clients.remove(token) != null) {
-            System.out.println("Client unregistered");
+            System.out.println(token + " unregistered");
         } else {
-            System.out.println("Unable to unregister client.");
+            System.out.println("Unable to unregister client" + token +".");
         }
     }
 
     @Override
-    public synchronized void tryNotifyFollowersUpdate(UUID toUpdate) throws RemoteException {
+    public synchronized void tryNotifyFollowersUpdate(String toUpdate) throws RemoteException {
         //se il client da notificare è registrato per il callback, la sua cache dei followers viene aggiornata
-        if (clients.containsKey(toUpdate)) {
-            List<String> followers = ServerMain.getFollowersFromUser(toUpdate);
-            clients.get(toUpdate).updateFollowersCache(followers);
+
+        for (UUID token :clients.keySet()){
+            if (userIdLookup.containsKey(token) && userIdLookup.get(token).equals(toUpdate)){
+                List<String> followers = IWinImpl.getUserFollowers(toUpdate);
+                clients.get(token).updateFollowersCache(followers);
+            }
         }
+
     }
 
 }

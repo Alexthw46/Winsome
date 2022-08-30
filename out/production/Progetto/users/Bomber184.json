@@ -1,10 +1,9 @@
 {
-  "userId" : "0163cd45-7d32-4333-9d13-fed9aee75ae2",
   "username" : "Bomber184",
   "password" : "pCalcio",
   "tags" : [ "calcio", "italia", "sport", "uefa" ],
   "blog" : [ ],
-  "followedUsers" : [ "6d75166b-44e6-4546-8ba9-d024ffab7c13" ],
+  "followedUsers" : [ "Luca" ],
   "wallet" : {
     "value" : 0.0
   }

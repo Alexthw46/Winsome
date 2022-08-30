@@ -24,17 +24,9 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static server.RewardsCalculator.*;
+
 public class ServerMain {
-
-    //Lookup map to get the userToken from the username
-    public static final Map<String, UUID> userIdLookup = new ConcurrentHashMap<>();
-
-    //Map that index Users with their userToken
-    public static final Map<UUID, User> userMap = new ConcurrentHashMap<>();
-
-    //map of all the posts, indexed by their postId
-    public static final Map<Integer, Post> postLookup = new ConcurrentHashMap<>();
-
 
     public static ServerConfig config;
 
@@ -98,7 +90,7 @@ public class ServerMain {
 
                 //award points and save timestamp of last check
                 if (System.currentTimeMillis() - lastCheck > config.PointsAwardInterval() * 1000) {
-                    calculatePointsAndAward(multicastSocket, lastCheck);
+                    calcAwardAndNotifyWincoins(multicastSocket, lastCheck);
                     lastCheck = System.currentTimeMillis();
                 }
 
@@ -151,6 +143,7 @@ public class ServerMain {
 
                             //special case for logout and shutdown
                             if (triplet.op() == 0) {
+                                IWinImpl.userIdLookup.remove(triplet.token());
                                 client.close();
                                 outMap.remove(selectorId);
                                 key.cancel();
@@ -243,18 +236,6 @@ public class ServerMain {
             throw new RuntimeException(e);
         }
     }
-
-    public static List<String> getFollowersFromUser(UUID userId) {
-        String username = userMap.get(userId).username();
-        List<String> followers = new ArrayList<>();
-        for (User user : userMap.values()) {
-            if (user.followedUsers().contains(username)) {
-                followers.add(user.username());
-            }
-        }
-        return followers;
-    }
-
     static int selectorCounter = 1;
 
     public static int getNextSelectorId() {
@@ -264,17 +245,24 @@ public class ServerMain {
 
     static final String winCoinUpdateNotify = "WinCoins awarded\n";
 
-    public static void calculatePointsAndAward(DatagramSocket group, long startTime) throws IOException {
+    /**
+     * This method calculates the points from each post, award them to users and notify them through multicast.
+     *
+     * @param group socket to notify the multicast group
+     * @param lastCheckTime timestamp of the last check made
+     * @throws IOException if an error occurs while sending the notify
+     */
+    public static void calcAwardAndNotifyWincoins(DatagramSocket group, long lastCheckTime) throws IOException {
 
         //for each post award points to author and curators
-        for (Post p : postLookup.values()) {
-            List<RewardsCalculator.CoinReward> rewards = RewardsCalculator.getPointsFromPost(p, startTime, config.AuthorReward());
-            for (RewardsCalculator.CoinReward coins : rewards) {
-                User user = userMap.get(coins.user());
+        for (Post p : IWinImpl.postLookup.values()) {
+            for (CoinReward coins : getPointsFromPost(p, lastCheckTime, config.AuthorReward())) {
+                User user = IWinImpl.userMap.get(coins.user());
                 user.wallet().setValue(user.wallet().getValue() + coins.reward());
                 logger.add(user.username() + " earned " + coins.reward() + " from post n. " + p.postId() + '\n');
             }
         }
+
         //create udp packet to send through multicast to notify clients
         InetAddress address = InetAddress.getByName(config.MulticastAddress());
         byte[] buffer = winCoinUpdateNotify.getBytes();

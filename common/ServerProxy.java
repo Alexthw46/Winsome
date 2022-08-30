@@ -7,7 +7,7 @@ import java.util.UUID;
 public interface ServerProxy extends Remote {
 
     /**
-     * use: register <username> <password> <tags>
+     * use: register <author> <password> <tags>
      *
      * @return triplet with <userToken multicastPort multicastAddress>, userToken is null if registration fails
      */
@@ -20,6 +20,6 @@ public interface ServerProxy extends Remote {
     void unregisterForCallback(UUID authToken) throws RemoteException;
 
     /* callback per aggiornare la cache dei followers */
-    void tryNotifyFollowersUpdate(UUID toUpdate) throws RemoteException;
+    void tryNotifyFollowersUpdate(String toUpdate) throws RemoteException;
 
 }

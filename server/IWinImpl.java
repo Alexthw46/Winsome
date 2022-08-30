@@ -16,10 +16,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 import static server.ServerMain.*;
@@ -27,6 +25,12 @@ import static server.data.TextValidator.*;
 
 public class IWinImpl implements IWin {
 
+    //Lookup map to get the username from the userToken
+    public static final Map<UUID, String> userIdLookup = new ConcurrentHashMap<>();
+    //Map that index Users with their usename
+    public static final Map<String, User> userMap = new ConcurrentHashMap<>();
+    //map of all the posts, indexed by their postId
+    public static final Map<Integer, Post> postLookup = new ConcurrentHashMap<>();
     final Triplet input;
     final ServerProxy proxy;
 
@@ -47,12 +51,13 @@ public class IWinImpl implements IWin {
         ObjectMapper mapper = new ObjectMapper();
         String result = "";
         try {
-            if (userIdLookup.containsKey(username)) {
-                UUID id = userIdLookup.get(username);
-                User loginAttempt = userMap.get(id);
+            if (userMap.containsKey(username)) {
+                UUID id = UUID.randomUUID();
+                User loginAttempt = userMap.get(username);
                 if (loginAttempt.password().equals(password)) {
                     logger.add("User " + username + " logged in.");
                     result = mapper.writeValueAsString(new Triplet(config.MulticastAddress(), config.UDPPort(), id));
+                    userIdLookup.put(id, username);
                 } else
                     result = mapper.writeValueAsString(new Triplet("Wrong password.", -1, null));
             } else {
@@ -68,19 +73,31 @@ public class IWinImpl implements IWin {
      * use: list users
      */
     @Override
-    public String listUsers(UUID token) {
+    public String listUsers(String username) {
         String list = (String.format("User %12c Tags \n", '|'));
-        User u = userMap.get(token);
+        User u = userMap.get(username);
         for (User s : userMap.values()) {
-            if (!token.equals(s.userId()) && u.tags().stream().anyMatch(i -> s.tags().contains(i)))
+            if (!u.username().equals(s.username()) && u.tags().stream().anyMatch(i -> s.tags().contains(i)))
                 list = list.concat(String.format("* %s %10c %s\n", s.username(), '|', s.tags()));
         }
         return list;
     }
 
+    public static List<String> getUserFollowers(String userId) {
+        String username = userMap.get(userId).username();
+        List<String> followers = new ArrayList<>();
+        for (User user : userMap.values()) {
+            if (user.followedUsers().contains(username)) {
+                followers.add(user.username());
+            }
+        }
+        return followers;
+    }
+
+
     @Override
-    public Set<UUID> listFollowing(UUID token) {
-        User user = userMap.get(token);
+    public Set<String> listFollowing(String username) {
+        User user = userMap.get(username);
         return user.followedUsers();
     }
 
@@ -92,7 +109,7 @@ public class IWinImpl implements IWin {
      * @return result message
      */
     @Override
-    public String followUser(UUID idToFollow, UUID idFollower) {
+    public String followUser(String idToFollow, String idFollower) {
         User newFollower = userMap.getOrDefault(idFollower, null);
         User toFollow = userMap.getOrDefault(idToFollow, null);
         if (newFollower != null && toFollow != null && !idToFollow.equals(idFollower)) {
@@ -111,22 +128,22 @@ public class IWinImpl implements IWin {
     /**
      * use: follow <user>
      *
-     * @param idToUnfollow id of the user to follow
-     * @param idFollower   if of the user that wants to follow
+     * @param userToUnfollow the user to unfollow
+     * @param follower   username of the user that wants to stop following
      * @return result message
      */
     @Override
-    public String unfollowUser(UUID idToUnfollow, UUID idFollower) {
-        User newFollower = userMap.getOrDefault(idFollower, null);
-        User toFollow = userMap.getOrDefault(idToUnfollow, null);
-        if (newFollower != null && toFollow != null && !idToUnfollow.equals(idFollower)) {
-            newFollower.unfollowUser(idToUnfollow);
+    public String unfollowUser(String userToUnfollow, String follower) {
+        User oldFollower = userMap.getOrDefault(follower, null);
+        User toUnfollow = userMap.getOrDefault(userToUnfollow, null);
+        if (oldFollower != null && toUnfollow != null && !userToUnfollow.equals(follower)) {
+            oldFollower.unfollowUser(userToUnfollow);
             try {
-                proxy.tryNotifyFollowersUpdate(idToUnfollow);
+                proxy.tryNotifyFollowersUpdate(userToUnfollow);
             } catch (RemoteException e) {
-                logger.add("Failed to notify follower update to client : " + idToUnfollow);
+                logger.add("Failed to notify follower update to client : " + userToUnfollow);
             }
-            return "Not following " + toFollow.username() + " anymore.\n";
+            return "Not following " + toUnfollow.username() + " anymore.\n";
         } else {
             return "User not found.\n";
         }
@@ -135,16 +152,20 @@ public class IWinImpl implements IWin {
     /**
      * use: blog
      *
-     * @param userToken id of the requesting user
+     * @param username id of the requesting user
      * @return list of all the post of the user, formatted
      */
     @Override
-    public String viewBlog(UUID userToken) {
-        User currentUser = userMap.getOrDefault(userToken, null);
+    public String viewBlog(String username) {
+        User currentUser = userMap.getOrDefault(username, null);
         String blog = "";
         if (currentUser != null) {
             for (Post post : currentUser.blog()) {
-                blog = blog.concat(post.format());
+                if (post.author().equals(username)) {
+                    blog = blog.concat(post.format());
+                } else {
+                    blog = blog.concat(post.formatR());
+                }
             }
         }
         return blog;
@@ -153,23 +174,24 @@ public class IWinImpl implements IWin {
     /**
      * use: post <title> <content>
      *
-     * @param author  author
-     * @param title   title
-     * @param content content
-     * @return formatted post or fail
+     * @param author  author's username
+     * @param title   post title
+     * @param content post content
+     * @return id of the post if success or error message if fail
      */
     @Override
-    public String createPost(UUID author, String title, String content) {
+    public String createPost(String author, String title, String content) {
         User user = userMap.getOrDefault(author, null);
         if (user != null && TextValidator.validatePostTitle(title) && TextValidator.validatePostContent(content)) {
             Post newPost = new Post(user.username(), getNewPostId(), title, content);
             user.blog().add(newPost);
             postLookup.put(newPost.postId(), newPost);
-            return newPost.format();
+            return "Success. New post made - ID: " + newPost.postId();
         }
-        return "failed";
+        return "Create post failed, title or content not valid.";
     }
 
+    //Counter of last postId used, it's updated to the maximum postId when the data is restored.
     static int postCounter = 0;
 
     private synchronized static int getNewPostId() {
@@ -180,14 +202,14 @@ public class IWinImpl implements IWin {
     /**
      * use: show feed
      *
-     * @param token id of the requesting user
+     * @param username of the requesting user
      * @return formatted feed, listing <post id | post author | post title>
      */
     @Override
-    public String showFeed(UUID token) {
+    public String showFeed(String username) {
         List<Post> feedList = new ArrayList<>();
 
-        for (User user : listFollowing(token).stream().map(userMap::get).toList()) {
+        for (User user : listFollowing(username).stream().map(userMap::get).toList()) {
             feedList.addAll(user.blog());
         }
         feedList.sort(null);
@@ -195,7 +217,7 @@ public class IWinImpl implements IWin {
         String feed = String.format("Id %5c Author %5c Title\n", '|', '|');
 
         for (Post post : feedList) {
-            feed = feed.concat(String.format("%s %5c %s %5c %s\n", post.postId(), '|', post.username(), '|', post.title()));
+            feed = feed.concat(String.format("%s %5c %s %5c %s\n", post.postId(), '|', post.author(), '|', post.title()));
         }
 
         return feed;
@@ -203,11 +225,11 @@ public class IWinImpl implements IWin {
 
     /**
      * @param postId id of the post
-     * @param userId id of the user
+     * @param username of the user
      * @return true if the post is present in one of the blog of the users followed by user
      */
-    public boolean isInFeed(int postId, UUID userId){
-        for (User user : listFollowing(userId).stream().map(userMap::get).toList()) {
+    public boolean isInFeed(int postId, String username){
+        for (User user : listFollowing(username).stream().map(userMap::get).toList()) {
             for (Post p : user.blog()){
                 if (p.postId() == postId) return true;
             }
@@ -234,37 +256,36 @@ public class IWinImpl implements IWin {
     /**
      * use: delete <id>
      *
-     * @param token  accessToken of the user requesting to delete
-     * @param idPost id of the post to delete
+     * @param username username of the user requesting to delete
+     * @param idPost   id of the post to delete
      * @return success or failure message
      */
     @Override
-    public String deletePost(UUID token, int idPost) {
-        User user = userMap.get(token);
-        if (postLookup.containsKey(idPost) && postLookup.get(idPost).username().equals(user.username())) {
-            postLookup.remove(idPost);
-            user.blog();
-            logger.add(postLookup.get(idPost).format() + "\n Deleted Successfully");
-        } else {
-            return "Post does not exist or permission was denied";
+    public String deletePost(String username, int idPost) {
+        User user = userMap.get(username);
+        if (postLookup.containsKey(idPost) && postLookup.get(idPost).author().equals(user.username())) {
+            Post toDelete = postLookup.remove(idPost);
+            user.blog().remove(toDelete);
+            logger.add(toDelete.format() + "\n Deleted Successfully");
+            return "Successfully removed";
         }
-        return "Successfully removed";
+        return "Post does not exist or permission was denied";
     }
 
     /**
      * use: rewin <id>
      *
-     * @param token  token of the user that want to rewin
+     * @param username of the user that want to rewin
      * @param idPost id of the post to rewin
      * @return result message
      */
     @Override
-    public String rewinPost(UUID token, int idPost) {
+    public String rewinPost(String username, int idPost) {
 
         if (postLookup.containsKey(idPost)) {
             Post toRewin = postLookup.get(idPost);
-            User user = userMap.get(token);
-            if (!user.username().equals(toRewin.username()) && user.blog().add(toRewin)) {
+            User user = userMap.get(username);
+            if (!user.username().equals(toRewin.author()) && user.blog().add(toRewin)) {
                 return "Post rewinned to user blog";
             } else {
                 return "Post already present in user blog";
@@ -281,10 +302,10 @@ public class IWinImpl implements IWin {
      * @return result message
      */
     @Override
-    public String ratePost(int idPost, UUID user, int rate) {
+    public String ratePost(int idPost, String username, int rate) {
         Post post = postLookup.getOrDefault(idPost, null);
-        if (post != null && !userIdLookup.get(post.username()).equals(user) && isInFeed(idPost, user)) {
-            if (post.rate(user, rate)) {
+        if (post != null && !post.author().equals(username) && isInFeed(idPost, username)) {
+            if (post.rate(username, rate)) {
                 return "Success";
             }else return "Already rated this post.";
         }
@@ -297,14 +318,14 @@ public class IWinImpl implements IWin {
      *
      * @param postId  id of the post to content
      * @param content content to add
-     * @param token   user access token
+     * @param username user commenting
      * @return result message
      */
     @Override
-    public String addComment(int postId, String content, UUID token) {
+    public String addComment(int postId, String content, String username) {
         Post post = postLookup.getOrDefault(postId, null);
-        if (post != null && validateComment(content) && isInFeed(postId, token)) {
-            Comment comment = new Comment(token, content, System.currentTimeMillis());
+        if (post != null && validateComment(content) && isInFeed(postId, username)) {
+            Comment comment = new Comment(username, content, System.currentTimeMillis());
             post.comment(comment);
             return comment.format();
         }
@@ -314,23 +335,23 @@ public class IWinImpl implements IWin {
     /**
      * use: wallet
      *
-     * @param token requesting user
+     * @param username requesting user
      * @return how many wincoins the user have
      */
     @Override
-    public String getWallet(UUID token) {
-        return String.format("%.2f Wincoins.\n", userMap.get(token).wallet().getValue());
+    public String getWallet(String username) {
+        return String.format("%.2f Wincoins.\n", userMap.get(username).wallet().getValue());
     }
 
     /**
      * use: wallet btc
      *
-     * @param token requesting user
+     * @param username requesting user
      * @return wallet points converted into btc
      */
     @Override
-    public String getWalletInBitcoin(UUID token) {
-        float winCoins = userMap.get(token).wallet().getValue();
+    public String getWalletInBitcoin(String username) {
+        float winCoins = userMap.get(username).wallet().getValue();
         float conversionRatio = 0;
 
         String randomOrg = "https://www.random.org/decimal-fractions/?num=1&dec=10&col=1&format=plain&rnd=new";
@@ -338,8 +359,7 @@ public class IWinImpl implements IWin {
         //send a http request to RANDOM.ORG to simulate coin value fluctuation
         try {
             HttpRequest request = HttpRequest.newBuilder(new URI(randomOrg)).GET().build();
-            HttpClient client = HttpClient.newHttpClient();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200) {
                 String toParse = response.body();
                 conversionRatio = Float.parseFloat(toParse);
@@ -366,27 +386,34 @@ public class IWinImpl implements IWin {
     @Override
     public String call() {
         //switch on opcode from the input triplet
-        switch (this.input.op()) {
-            case 100 -> {
+
+        if (input.token() == null || !userIdLookup.containsKey(input.token())) {
+            if (this.input.op() == 100){
                 String[] tokens = input.args().split(" ");
                 return login(tokens[0], tokens[1]);
             }
+            return "AuthError";
+        }
+
+        String username = userIdLookup.get(input.token());
+
+        switch (this.input.op()) {
             case 1 -> {
-                return listUsers(input.token());
+                return listUsers(username);
             }
             case 3 ->{
-                return listFollowing(input.token()).toString();
+                return listFollowing(username).toString();
             }
             case 4 -> {
                 logger.add("follow request for " + input.args());
-                return followUser(userIdLookup.get(input.args()), input.token());
+                return followUser(input.args(), username);
             }
             case 5 -> {
                 logger.add("unfollow request for " + input.args());
-                return unfollowUser(userIdLookup.get(input.args()), input.token());
+                return unfollowUser(input.args(), username);
             }
             case 6 -> {
-                return viewBlog(input.token());
+                return viewBlog(username);
             }
             case 10 -> {
                 List<String> matches = pattern.matcher(input.args())
@@ -395,25 +422,25 @@ public class IWinImpl implements IWin {
                 if (matches.size() == 2) {
                     String title = matches.get(0);
                     String post = matches.get(1);
-                    return createPost(input.token(), title, post);
+                    return createPost(username, title, post);
                 } else {
                     return "Error while creating post, make sure title and contents are between \" ";
                 }
             }
             case 11 -> {
                 if (isNumeric(input.args()))
-                    return deletePost(input.token(), Integer.parseInt(input.args()));
+                    return deletePost(username, Integer.parseInt(input.args()));
             }
             case 12 -> {
                 if (isNumeric(input.args()))
-                    return rewinPost(input.token(), Integer.parseInt(input.args()));
+                    return rewinPost(username, Integer.parseInt(input.args()));
             }
             case 13 -> {
                 String[] split = input.args().split("\"");
                 if (isNumeric(split[0].trim()) && split.length > 1) {
                     int postId = Integer.parseInt(split[0].trim());
                     String comment = split[1].trim();
-                    return addComment(postId, comment, input.token());
+                    return addComment(postId, comment, username);
                 } else {
                     return "Arguments not valid. Type help for how to use.";
                 }
@@ -427,13 +454,13 @@ public class IWinImpl implements IWin {
                     int postId = Integer.parseInt(split[0].trim());
                     int rate = Integer.parseInt(split[1].trim());
                     if (Math.abs(rate) != 1) return "Only valid ratings are 1 and -1";
-                    return ratePost(postId, input.token(), rate);
+                    return ratePost(postId, username, rate);
                 } catch (NumberFormatException e) {
                     return "Arguments error, not a number.";
                 }
             }
             case 20 -> {
-                return showFeed(input.token());
+                return showFeed(username);
             }
             case 21 -> {
                 if (isNumeric(input.args())) {
@@ -441,10 +468,10 @@ public class IWinImpl implements IWin {
                 }else return "Arguments error, not a number.";
             }
             case 30 -> {
-                return getWallet(input.token());
+                return getWallet(username);
             }
             case 31 -> {
-                return getWalletInBitcoin(input.token());
+                return getWalletInBitcoin(username);
             }
         }
         return "No operation found for this request";

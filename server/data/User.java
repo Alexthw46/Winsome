@@ -1,28 +1,28 @@
 package server.data;
 
-import server.ServerMain;
+import server.IWinImpl;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-public record User(UUID userId, String username, String password, Set<String> tags, CopyOnWriteArraySet<Post> blog, CopyOnWriteArraySet<UUID> followedUsers, NumberWrapper<Float> wallet) {
+public record User(String username, String password, Set<String> tags, CopyOnWriteArraySet<Post> blog, CopyOnWriteArraySet<String> followedUsers, NumberWrapper<Float> wallet) {
 
     //for registration only
-    public User(UUID userId, String username, String password, Set<String> tags){
-        this(userId, username, password, tags, new CopyOnWriteArraySet<>(), new CopyOnWriteArraySet<>(), new NumberWrapper<>(0F));
+    public User(String username, String password, Set<String> tags){
+        this(username, password, tags, new CopyOnWriteArraySet<>(), new CopyOnWriteArraySet<>(), new NumberWrapper<>(0F));
     }
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof User user && this.userId().equals(user.userId());
+        return obj instanceof User user && this.username.equals(user.username());
     }
 
-    public synchronized void followUser(UUID idFollower) {
-        this.followedUsers.add(idFollower);
+    public synchronized void followUser(String newFollower) {
+        this.followedUsers.add(newFollower);
     }
 
-    public synchronized void unfollowUser(UUID idFollower) {
-        this.followedUsers.remove(idFollower);
+    public synchronized void unfollowUser(String oldFollower) {
+        this.followedUsers.remove(oldFollower);
     }
 
     /**
@@ -30,7 +30,7 @@ public record User(UUID userId, String username, String password, Set<String> ta
      */
     @Override
     public synchronized CopyOnWriteArraySet<Post> blog() {
-        blog.removeIf(p -> !ServerMain.postLookup.containsKey(p.postId()));
+        blog.removeIf(p -> !this.username.equals(p.author()) && !IWinImpl.postLookup.containsKey(p.postId()));
         return blog;
     }
 
