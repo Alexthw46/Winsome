@@ -62,6 +62,7 @@ public class ClientMain {
                     }
                 }
 
+                System.out.println("Client ready! Type help for available commands. Login or register to authenticate, shutdown or logout to exit.");
                 while (!shutdown) {
 
                     //try join the multicast group with the data got by logging/registering
@@ -232,8 +233,6 @@ public class ClientMain {
         if (result != null && !result.isBlank()) {
             ObjectMapper mapper = new ObjectMapper();
             return mapper.readValue(result, Triplet.class);
-        } else {
-            System.out.println(result);
         }
         return null;
     }

@@ -59,16 +59,14 @@ public class PersistentDataManager {
 
                             IWinImpl.userMap.put(restoreUser.username(), restoreUser);
                             for (Post restorePost : restoreUser.blogUnchecked()) {
-                                //ignore rewinned posts
+                                //don't add rewinned posts to lookup
                                 if (restoreUser.username().equals(restorePost.author())) {
                                     IWinImpl.postLookup.put(restorePost.postId(), restorePost);
                                     IWinImpl.postCounter = Math.max(IWinImpl.postCounter, restorePost.postId());
                                 }
                             }
-                            System.out.println("Deserialized object from JSON");
-                            System.out.println("-----------------------");
-                            System.out.println(restoreUser);
-                            System.out.println("-----------------------");
+
+                            ServerMain.logger.add("Restored user: \n" + restoreUser.username());
                         }
                     } catch (IOException | NullPointerException e) {
                         e.printStackTrace();
@@ -87,6 +85,8 @@ public class PersistentDataManager {
                 while (parser.nextToken() == JsonToken.START_OBJECT) {
                     Log latest = parser.readValueAs(Log.class);
                     ServerMain.lastCheck = latest.lastCheck;
+                    latest = null;
+                    System.gc();
                 }
             } catch (IOException | NullPointerException e) {
                 e.printStackTrace();
@@ -121,7 +121,7 @@ public class PersistentDataManager {
             try (JsonGenerator generator = factory.createGenerator(
                     new File(savedUserDataPath + File.separatorChar + user.username() + ".json"), JsonEncoding.UTF8)
             ) {
-
+                ServerMain.logger.add("Saving: " + user.username() + '\n');
                 generator.setCodec(new ObjectMapper());
                 generator.useDefaultPrettyPrinter();
                 generator.writeObject(user);
@@ -129,7 +129,6 @@ public class PersistentDataManager {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println("Saving: " + user.username() + '\n');
         }
 
         savedDataDir = new File(savedDataPath);
@@ -142,9 +141,7 @@ public class PersistentDataManager {
 
         }
 
-        try (JsonGenerator generator = factory.createGenerator(
-                new File(savedDataPath + File.separatorChar + "latest.json"), JsonEncoding.UTF8)
-        ) {
+        try (JsonGenerator generator = factory.createGenerator(new File(savedDataPath + File.separatorChar + "latest.json"), JsonEncoding.UTF8)) {
             generator.setCodec(new ObjectMapper());
             generator.useDefaultPrettyPrinter();
             generator.writeObject(new Log(ServerMain.lastCheck, ServerMain.logger));

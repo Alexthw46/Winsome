@@ -250,7 +250,7 @@ public class ServerMain {
      *
      * @param group socket to notify the multicast group
      * @param lastCheckTime timestamp of the last check made
-     * @throws IOException if an error occurs while sending the notify
+     * @throws IOException if an error occurs while sending the reward notification
      */
     public static void calcAwardAndNotifyWincoins(DatagramSocket group, long lastCheckTime) throws IOException {
 

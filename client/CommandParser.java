@@ -13,22 +13,23 @@ public class CommandParser {
                 List of available commands:\s
                 login <username> <password>\s
                 register <username> <password> <tags> | Up to five tags can be inserted, at least one is needed\s
-                shutdown - close both client and server\s
-                logout - logs out from account and close the client\s
-                blog\s
-                list user \s
-                list followers \s
-                list following\s
-                show feed\s
-                show post <postId> \s
+                shutdown | Close both client and server\s
+                logout | Exit from account and close the client\s
+                blog | Shows your blog\s
+                list user | List the users with at least one tag in common with you\s
+                list followers | List your followers\s
+                list following | List the users you are following\s
+                show feed | Show your feed\s
+                show post <postId> | Show the post\s
                 post <"Title"> <"Content"> | Title and Content needs to be enclosed between " " \s
-                delete <postId> | Only usable by the author of the post \s
-                comment <postId> <"Comment"> | Comment needs to be enclosed between " " \s
-                rewin <postId> \s
-                rate <postId> <rating> | rating can be +1 or -1 \s
-                follow <username> \s
-                unfollow <username> \s
-                wallet \s
+                delete <postId> | Delete the post. Only usable by the author of the post \s
+                comment <postId> <"Comment"> | You can only comment posts in your feed. Comment needs to be enclosed between " " \s
+                rewin <postId> | Add another user's post to your blog\s
+                rate <postId> <rating> | You can only rate posts in your feed. Rating can be +1 or -1 \s
+                follow <username> | Follow the user\s
+                unfollow <username> | Stop following the user \s
+                wallet | Get your wincoins wallet \s
+                wallet btc | Get your wincoins wallet converted in Bitcoins\s
                 """);
     }
 
@@ -42,7 +43,6 @@ public class CommandParser {
         String input = scanner.nextLine();
 
         String[] tokens = input.split(" ");
-
 
         int opCode = switch (tokens[0]) {
             case "help" -> -1;

@@ -4,7 +4,7 @@ MulticastAddress: "239.255.32.32"
 TCPPort: 1080
 UDPPort: 44444
 RegHost: "AUTHENTICATOR"
-RegPort: 10
+RegPort: 1846
 AuthorReward: 0.75
 PointsAwardInterval: 300
 selectTimeout: 2000

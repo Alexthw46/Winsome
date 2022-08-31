@@ -2,25 +2,7 @@
   "username" : "Luca",
   "password" : "pLuca",
   "tags" : [ "calcio", "italia", "gatti", "sport" ],
-  "blog" : [ {
-    "author" : "Luca",
-    "postId" : 1,
-    "title" : "Bella partita",
-    "content" : "Quella di ierisera è stata una bella partita, #forzaMilan",
-    "comments" : [ {
-      "author" : "Bomber184",
-      "content" : "Tanto la finale la perdete, #forzaInter",
-      "timestamp" : 1661590543635
-    } ],
-    "ratings" : [ {
-      "user" : "Bomber184",
-      "rate" : -1,
-      "timestamp" : 1661590518532
-    } ],
-    "timesChecked" : {
-      "value" : 10
-    }
-  } ],
+  "blog" : [ ],
   "followedUsers" : [ "Giulia" ],
   "wallet" : {
     "value" : 0.25
