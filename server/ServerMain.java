@@ -31,12 +31,12 @@ public class ServerMain {
     public static ServerConfig config;
 
     //Thread pool for executing requests
-    static final ExecutorService pool = Executors.newCachedThreadPool();
+    private static final ExecutorService pool = Executors.newCachedThreadPool();
 
     //Time of the last check of rewards
     static long lastCheck = System.currentTimeMillis();
 
-    static List<String> logger = new CopyOnWriteArrayList<>();
+    static final List<String> logger = new CopyOnWriteArrayList<>();
 
     public static void main(String[] args) {
 

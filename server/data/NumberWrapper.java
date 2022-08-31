@@ -4,11 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class NumberWrapper<T extends Number> {
     @JsonProperty("value")
-    T value;
-
-    public T getValue() {
-        return value;
-    }
+    volatile T value;
 
     public NumberWrapper(){}
 
@@ -17,8 +13,11 @@ public class NumberWrapper<T extends Number> {
         value = val;
     }
 
-    public void setValue(T val) {
+    public synchronized void setValue(T val) {
         this.value = val;
+    }
+    public synchronized T getValue() {
+        return value;
     }
 
     @Override

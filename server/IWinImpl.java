@@ -158,7 +158,7 @@ public class IWinImpl implements IWin {
     @Override
     public String viewBlog(String username) {
         User currentUser = userMap.getOrDefault(username, null);
-        String blog = "";
+        String blog = "Your blog:\n";
         if (currentUser != null) {
             for (Post post : currentUser.blog()) {
                 if (post.author().equals(username)) {
@@ -402,7 +402,8 @@ public class IWinImpl implements IWin {
                 return listUsers(username);
             }
             case 3 ->{
-                return listFollowing(username).toString();
+                Set<String> followedUsers = listFollowing(username);
+                return followedUsers.isEmpty() ? "You aren't following any user\n" : followedUsers.toString();
             }
             case 4 -> {
                 logger.add("follow request for " + input.args());
