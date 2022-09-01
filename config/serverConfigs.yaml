@@ -6,5 +6,5 @@ UDPPort: 44444
 RegHost: "AUTHENTICATOR"
 RegPort: 1846
 AuthorReward: 0.75
-PointsAwardInterval: 300
+PointsAwardInterval: 60
 selectTimeout: 2000

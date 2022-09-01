@@ -1,15 +1,21 @@
 package server.data;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import server.IWinImpl;
 
+import java.sql.Timestamp;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-public record User(String username, String password, Set<String> tags, CopyOnWriteArraySet<Post> blog, CopyOnWriteArraySet<String> followedUsers, NumberWrapper<Float> wallet) {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record User(String username, String password, Set<String> tags, CopyOnWriteArraySet<Post> blog,
+                   CopyOnWriteArraySet<String> followedUsers,
+                   CopyOnWriteArrayList<Transaction> wallet) {
 
     //for registration only
-    public User(String username, String password, Set<String> tags){
-        this(username, password, tags, new CopyOnWriteArraySet<>(), new CopyOnWriteArraySet<>(), new NumberWrapper<>(0F));
+    public User(String username, String password, Set<String> tags) {
+        this(username, password, tags, new CopyOnWriteArraySet<>(), new CopyOnWriteArraySet<>(), new CopyOnWriteArrayList<>());
     }
 
     @Override
@@ -35,8 +41,22 @@ public record User(String username, String password, Set<String> tags, CopyOnWri
     }
 
     //Getter used only to restore data, when the post lookup is not filled yet
-    public Set<Post> blogUnchecked(){
+    public Set<Post> blogUnchecked() {
         return blog;
     }
 
+    public float getTotalWallet() {
+        float counter = 0;
+        for (Transaction t : wallet()) {
+            counter += t.reward();
+        }
+        return counter;
+    }
+
+    public record Transaction(float reward, long timestamp) {
+        @Override
+        public String toString() {
+            return String.format("%s : Rewarded %.2f Wincoins", new Timestamp(timestamp), reward());
+        }
+    }
 }

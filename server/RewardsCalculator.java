@@ -37,18 +37,20 @@ public class RewardsCalculator {
         pointsFromComments = Math.log(1 + pointsFromComments);
 
         //update post checks counter
-        postToCheck.timesChecked().setValue(postToCheck.timesChecked().getValue() + 1);
+        postToCheck.timesChecked().increase();
 
         //compute the total points and split them between author and curators
         total += (pointsFromComments + pointsFromLikes) / postToCheck.timesChecked().getValue();
 
-        float authorReward = authorPercentage * total;
-        float curatorReward = (1-authorPercentage) * total / Math.max(curators.size(), 1);
-
         Set<CoinReward> result = new HashSet<>();
-        result.add(new CoinReward(author, authorReward));
-        for (String c : curators){
-            result.add(new CoinReward(c, curatorReward));
+        if (total > 0) {
+            float authorReward = authorPercentage * total;
+            float curatorReward = (1-authorPercentage) * total / Math.max(curators.size(), 1);
+
+            result.add(new CoinReward(author, authorReward));
+            for (String c : curators) {
+                result.add(new CoinReward(c, curatorReward));
+            }
         }
 
         return result;

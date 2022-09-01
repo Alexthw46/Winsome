@@ -243,7 +243,7 @@ public class ClientMain {
 
         if (tokens.length > 2) {
             //check if the number of tags is correct and call the RMI method
-            String[] tags = input.args().substring(1 + tokens[0].length() + tokens[1].length()).toLowerCase().split(" ");
+            String[] tags = input.args().substring(1 + tokens[0].length() + tokens[1].length()).trim().toLowerCase().split(" ");
             if (tags.length >= 1 && tags.length <= 5) {
                 result = proxy.register(tokens[0], tokens[1], tags);
             } else System.out.println("You need to choose at least one tag, up to five");

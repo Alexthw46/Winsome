@@ -31,7 +31,7 @@ public class ServerMain {
     public static ServerConfig config;
 
     //Thread pool for executing requests
-    private static final ExecutorService pool = Executors.newCachedThreadPool();
+    private static final ExecutorService workerPool = Executors.newCachedThreadPool();
 
     //Time of the last check of rewards
     static long lastCheck = System.currentTimeMillis();
@@ -85,7 +85,6 @@ public class ServerMain {
 
         boolean shutdown = false;
         try (DatagramSocket multicastSocket = new DatagramSocket()) {
-
             while (!shutdown) {
 
                 //award points and save timestamp of last check
@@ -150,7 +149,7 @@ public class ServerMain {
                                 System.out.println("Connection with client closed");
                                 if (triplet.args().equals("shutdown")) {
                                     shutdown = true;
-                                    pool.shutdown();
+                                    workerPool.shutdown();
                                 }
                                 continue;
                             } else {
@@ -231,7 +230,7 @@ public class ServerMain {
     private static void checkAndExecute(int requestId, Map<Integer, Future<String>> outMap, Triplet tri, ServerProxy proxy) {
         IWin worker = new IWinImpl(tri, proxy);
         try {
-            outMap.put(requestId, pool.submit(worker));
+            outMap.put(requestId, workerPool.submit(worker));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -254,13 +253,19 @@ public class ServerMain {
      */
     public static void calcAwardAndNotifyWincoins(DatagramSocket group, long lastCheckTime) throws IOException {
 
+        Map<String, Float> RewardMap = new HashMap<>();
         //for each post award points to author and curators
         for (Post p : IWinImpl.postLookup.values()) {
             for (CoinReward coins : getPointsFromPost(p, lastCheckTime, config.AuthorReward())) {
-                User user = IWinImpl.userMap.get(coins.user());
-                user.wallet().setValue(user.wallet().getValue() + coins.reward());
-                logger.add(user.username() + " earned " + coins.reward() + " from post n. " + p.postId() + '\n');
+                RewardMap.put(coins.user(), RewardMap.getOrDefault(coins.user(), 0F) + coins.reward());
             }
+        }
+
+        long time = System.currentTimeMillis();
+        for (var reward : RewardMap.entrySet()){
+            User u = IWinImpl.userMap.get(reward.getKey());
+            u.wallet().add(new User.Transaction(reward.getValue(), time));
+            logger.add(String.format("%s : Awarded %.2f wincoins to %s", time, reward.getValue(), reward.getKey()));
         }
 
         //create udp packet to send through multicast to notify clients

@@ -1,0 +1,22 @@
+{
+  "username" : "u5",
+  "password" : "5",
+  "tags" : [ "solotag" ],
+  "blog" : [ {
+    "author" : "u5",
+    "postId" : 1,
+    "title" : "Nobody can list me",
+    "content" : "Nobody share my tag",
+    "comments" : [ ],
+    "ratings" : [ ],
+    "timesChecked" : {
+      "value" : 1
+    }
+  } ],
+  "followedUsers" : [ ],
+  "wallet" : [ {
+    "reward" : 0.0,
+    "timestamp" : 1662038926240
+  } ],
+  "totalWallet" : 0.0
+}

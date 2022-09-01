@@ -340,7 +340,8 @@ public class IWinImpl implements IWin {
      */
     @Override
     public String getWallet(String username) {
-        return String.format("%.2f Wincoins.\n", userMap.get(username).wallet().getValue());
+        User user = userMap.get(username);
+        return String.format("%.2f Wincoins.\n", user.getTotalWallet()).concat(user.wallet().toString());
     }
 
     /**
@@ -351,7 +352,7 @@ public class IWinImpl implements IWin {
      */
     @Override
     public String getWalletInBitcoin(String username) {
-        float winCoins = userMap.get(username).wallet().getValue();
+        float winCoins = userMap.get(username).getTotalWallet();
         float conversionRatio = 0;
 
         String randomOrg = "https://www.random.org/decimal-fractions/?num=1&dec=10&col=1&format=plain&rnd=new";

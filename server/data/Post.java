@@ -14,10 +14,10 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * @param ratings list of ratings left on the post, thread-safe set (a user can only rate once)
  * @param timesChecked times the post have been checked for wincoins rewards
  */
-public record Post(String author, int postId, String title, String content, CopyOnWriteArrayList<Comment> comments, CopyOnWriteArraySet<Rating> ratings, NumberWrapper<Integer> timesChecked) implements Comparable<Post>{
+public record Post(String author, int postId, String title, String content, CopyOnWriteArrayList<Comment> comments, CopyOnWriteArraySet<Rating> ratings, IntWrapper timesChecked) implements Comparable<Post>{
 
     public Post(String userId, int postId, String title, String content){
-        this(userId, postId, title, content, new CopyOnWriteArrayList<>(), new CopyOnWriteArraySet<>(), new NumberWrapper<>(0));
+        this(userId, postId, title, content, new CopyOnWriteArrayList<>(), new CopyOnWriteArraySet<>(), new IntWrapper(0));
     }
 
     /**
