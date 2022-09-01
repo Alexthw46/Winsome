@@ -10,13 +10,9 @@
     "comments" : [ ],
     "ratings" : [ ],
     "timesChecked" : {
-      "value" : 1
+      "value" : 5
     }
   } ],
   "followedUsers" : [ ],
-  "wallet" : [ {
-    "reward" : 0.0,
-    "timestamp" : 1662038926240
-  } ],
-  "totalWallet" : 0.0
+  "wallet" : [ ]
 }

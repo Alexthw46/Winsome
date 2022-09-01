@@ -3,7 +3,6 @@
   "password" : "2",
   "tags" : [ "tag1", "tag4", "tag5", "tag2", "tag3" ],
   "blog" : [ ],
-  "followedUsers" : [ ],
-  "wallet" : [ ],
-  "totalWallet" : 0.0
+  "followedUsers" : [ "u1", "u3" ],
+  "wallet" : [ ]
 }

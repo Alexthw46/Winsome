@@ -45,7 +45,7 @@ public record User(String username, String password, Set<String> tags, CopyOnWri
         return blog;
     }
 
-    public float getTotalWallet() {
+    public float totalWallet() {
         float counter = 0;
         for (Transaction t : wallet()) {
             counter += t.reward();
@@ -56,7 +56,7 @@ public record User(String username, String password, Set<String> tags, CopyOnWri
     public record Transaction(float reward, long timestamp) {
         @Override
         public String toString() {
-            return String.format("%s : Rewarded %.2f Wincoins", new Timestamp(timestamp), reward());
+            return String.format("%s : Rewarded %.2f Wincoins\n", new Timestamp(timestamp), reward());
         }
     }
 }

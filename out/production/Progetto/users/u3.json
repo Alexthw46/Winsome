@@ -1,9 +1,8 @@
 {
   "username" : "u3",
-  "password" : "tag1",
-  "tags" : [ "tag5", "tag3" ],
+  "password" : "3",
+  "tags" : [ "tag1", "tag5", "tag3" ],
   "blog" : [ ],
-  "followedUsers" : [ ],
-  "wallet" : [ ],
-  "totalWallet" : 0.0
+  "followedUsers" : [ "u1", "u2" ],
+  "wallet" : [ ]
 }
