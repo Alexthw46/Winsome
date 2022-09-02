@@ -114,7 +114,7 @@ public class ServerMain {
                             client.configureBlocking(false);
 
                             //prepare to read, wrap buffer with channelId
-                            BufferWrapper readBuffer = new BufferWrapper(getNextSelectorId(), 128);
+                            BufferWrapper readBuffer = new BufferWrapper(getNextSelectorId(), 512);
                             client.register(selector, SelectionKey.OP_READ, readBuffer);
 
                         }

@@ -1,9 +1,0 @@
----
-# Indirizzo del server
-ServerAddress: "localhost"
-# Porta TCP del server
-TCPPort: 1080
-# Porta del registry RMI
-RegPort: 1846
-# Indirizzo del registry RMI
-RegHost: "localhost"

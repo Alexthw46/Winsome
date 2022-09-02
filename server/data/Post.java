@@ -86,13 +86,13 @@ public record Post(String author, int postId, String title, String content, Copy
     public String format(){
 
         Rating.Pair rating = totalRating();
-        String formattedComments = "\n";
+        String formattedComments = "";
 
-        for (Comment comment : comments()) {
-            formattedComments = comment.format().concat(formattedComments);
+        if (comments.size() == 0){
+            formattedComments = "No comments yet.\n";
+        }else for (Comment comment : comments()) {
+            formattedComments = formattedComments.concat(comment.format());
         }
-
-        if (comments.size() == 0) formattedComments = "No comments yet.\n";
 
         return "Titolo: " + title() + '\n' +
                "Contenuto: " + content() + '\n' +

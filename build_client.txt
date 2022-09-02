@@ -1,2 +1,3 @@
-javac client\* common\* -cp lib\* -d .\buildClient
-jar cvmf client.mf Client.jar build\client\* build\common\*
+javac client\* common\* -cp lib\* -d .\build
+cd build
+jar cvmf ..\client.mf ..\Client.jar client\* common\*

@@ -1,2 +1,0 @@
-javac server\data\*.java server\*.java common\* -cp lib\* -d .\buildServer
-jar cvmf server.mf Server.jar server\* common\*

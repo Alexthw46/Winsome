@@ -16,11 +16,12 @@ public class PersistentDataManager {
     public static boolean initialize() {
 
         ObjectMapper om = new ObjectMapper(new YAMLFactory());
-
+        File configDir = new File("config");
         File configs = new File("config" + File.separatorChar + "serverConfigs.yaml");
 
         //load configs from file or create one with the default values
         try {
+            if (!configDir.isDirectory()) configDir.mkdir();
             if (configs.createNewFile()) {
                 om.writeValue(configs, defaults);
                 ServerMain.config = defaults;
@@ -42,12 +43,13 @@ public class PersistentDataManager {
         //restores the users and posts from local files
 
         File savedDataDir = new File(savedUserDataPath);
-
-        if (savedDataDir.exists() || savedDataDir.isDirectory()) {
-
+        if (!savedDataDir.isDirectory() && !savedDataDir.mkdirs()) {
+            System.out.println("Unable to create folder for saves");
+            return false;
+        }
+        if (savedDataDir.isDirectory()) {
             File[] files = savedDataDir.listFiles();
 
-            assert files != null;
             for (File userFile : files) {
 
                 if (userFile.exists() && userFile.canRead()) {
