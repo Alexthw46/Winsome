@@ -10,7 +10,7 @@ public class ClientConfigHandler {
 
     public record ClientConfig(String ServerAddress, Integer TCPPort, String RegHost, Integer RegPort){}
 
-     static final ClientConfig defaults = new ClientConfig("localhost", 1080, "AUTHENTICATOR", 1846);
+     static final ClientConfig defaults = new ClientConfig("localhost", 1080, "localhost", 1846);
 
     public static ClientConfig loadConfigs() {
         ObjectMapper om = new ObjectMapper(new YAMLFactory());

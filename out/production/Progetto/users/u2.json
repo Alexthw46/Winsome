@@ -2,7 +2,54 @@
   "username" : "u2",
   "password" : "2",
   "tags" : [ "tag1", "tag4", "tag5", "tag2", "tag3" ],
-  "blog" : [ ],
+  "blog" : [ {
+    "author" : "u2",
+    "postId" : 4,
+    "title" : "A test from u2",
+    "content" : "Not the band, i'm just user n.2",
+    "comments" : [ {
+      "author" : "u4",
+      "content" : "Damn, you tricked me!",
+      "timestamp" : 1662116135464
+    } ],
+    "ratings" : [ {
+      "user" : "u3",
+      "rate" : 1,
+      "timestamp" : 1662115897648
+    } ],
+    "timesChecked" : {
+      "value" : 0
+    }
+  }, {
+    "author" : "u2",
+    "postId" : 5,
+    "title" : "Finance question",
+    "content" : "Who have the most wincoins here?",
+    "comments" : [ {
+      "author" : "u3",
+      "content" : "I'd betit's u1, they're thefirst one whogot here",
+      "timestamp" : 1662115925801
+    }, {
+      "author" : "u4",
+      "content" : "Maybe you'll bethe one soon",
+      "timestamp" : 1662116152102
+    }, {
+      "author" : "u1",
+      "content" : "If thiswas a trick toget points, it's probably working",
+      "timestamp" : 1662116491847
+    } ],
+    "ratings" : [ {
+      "user" : "u1",
+      "rate" : -1,
+      "timestamp" : 1662116413440
+    } ],
+    "timesChecked" : {
+      "value" : 0
+    }
+  } ],
   "followedUsers" : [ "u1", "u3" ],
-  "wallet" : [ ]
+  "wallet" : [ {
+    "reward" : 0.25,
+    "timestamp" : 1662042943194
+  } ]
 }

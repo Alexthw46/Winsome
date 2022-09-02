@@ -14,7 +14,7 @@ public class ClientProxyImpl extends RemoteObject implements ClientProxy {
     }
 
     @Override
-    public void updateFollowersCache(List<String> followers) {
+    synchronized public void updateFollowersCache(List<String> followers) {
         followersCache = followers;
     }
 

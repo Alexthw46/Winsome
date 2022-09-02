@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class PersistentDataManager {
-    static final ServerConfig defaults = new ServerConfig("localhost", "239.255.32.32", 1080, 44444, "AUTHENTICATOR", 1846,  0.75F,100L, 2000L);
+    static final ServerConfig defaults = new ServerConfig("localhost", "239.255.32.32", 1080, 44444, "localhost", 1846,  0.75F,100L, 2000L);
 
     public static boolean initialize() {
 

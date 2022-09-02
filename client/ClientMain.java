@@ -39,8 +39,8 @@ public class ClientMain {
 
             //connect to RMI register to retrieve proxy
             try {
-                Registry r = LocateRegistry.getRegistry(config.RegPort());
-                serverProxy = (ServerProxy) r.lookup(config.RegHost());
+                Registry r = LocateRegistry.getRegistry(config.RegHost(),config.RegPort());
+                serverProxy = (ServerProxy) r.lookup("AUTHENTICATOR");
             } catch (NotBoundException | RemoteException e) {
                 System.out.println("Remote Connection to Server refused");
                 return;
@@ -69,7 +69,7 @@ public class ClientMain {
                     try {
                         if (group == null && authToken != null && multicastGroup != null) {
                             group = new MulticastSocket(multicastGroup.getPort());
-                            NetworkInterface netIf = NetworkInterface.getByName("walletUpdater");
+                            NetworkInterface netIf = NetworkInterface.getByInetAddress(multicastGroup.getAddress());
                             group.joinGroup(multicastGroup, netIf);
                         }
                     } catch (IOException e) {

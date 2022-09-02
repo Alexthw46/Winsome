@@ -1,5 +1,9 @@
 ---
+# Indirizzo del server
 ServerAddress: "localhost"
+# Porta TCP del server
 TCPPort: 1080
-RegHost: "AUTHENTICATOR"
+# Porta del registry RMI
 RegPort: 1846
+# Indirizzo del registry RMI
+RegHost: "localhost"

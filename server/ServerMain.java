@@ -54,8 +54,8 @@ public class ServerMain {
             proxy = new ServerProxyImpl();
             ServerProxy stub = (ServerProxy) UnicastRemoteObject.exportObject(proxy, 0);
             LocateRegistry.createRegistry(config.RegPort());
-            Registry reg = LocateRegistry.getRegistry(config.ServerAddress(), config.RegPort());
-            reg.rebind(config.RegHost(), stub);
+            Registry reg = LocateRegistry.getRegistry(config.RegHost(), config.RegPort());
+            reg.rebind("AUTHENTICATOR", stub);
         } catch (RemoteException e) {
             System.out.println("Error setting up Remote registry");
             e.printStackTrace();

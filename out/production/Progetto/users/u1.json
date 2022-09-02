@@ -13,7 +13,7 @@
       "timestamp" : 1662039365278
     }, {
       "author" : "u3",
-      "content" : "This isnot thereal first post",
+      "content" : "This is not the real first post",
       "timestamp" : 1662042664260
     } ],
     "ratings" : [ {
@@ -26,7 +26,7 @@
       "timestamp" : 1662042650226
     } ],
     "timesChecked" : {
-      "value" : 0
+      "value" : 2
     }
   }, {
     "author" : "u1",
@@ -44,9 +44,12 @@
       "timestamp" : 1662042652944
     } ],
     "timesChecked" : {
-      "value" : 0
+      "value" : 2
     }
   } ],
-  "followedUsers" : [ ],
-  "wallet" : [ ]
+  "followedUsers" : [ "u2" ],
+  "wallet" : [ {
+    "reward" : 1.5,
+    "timestamp" : 1662042943194
+  } ]
 }

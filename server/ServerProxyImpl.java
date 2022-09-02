@@ -44,29 +44,28 @@ public class ServerProxyImpl extends RemoteServer implements ServerProxy {
         clients = new ConcurrentHashMap<>();
     }
 
-    /* registrazione per il callback e inizializzazione cache followers*/
+    /* registrazione per il callback e init cache followers*/
     public synchronized void registerForCallback(UUID token, ClientProxy callbackClient) throws RemoteException {
         if (!clients.containsKey(token)) {
             clients.put(token, callbackClient);
             tryNotifyFollowersUpdate(userIdLookup.get(token));
             System.out.println("New client registered for callbacks :"+ token +".");
-        } else throw new RemoteException("Client already registered.");
+        } else throw new RemoteException("Client already registered for callbacks.");
     }
 
     /* annulla registrazione per il callback */
     public synchronized void unregisterForCallback(UUID token) throws RemoteException {
         if (clients.remove(token) != null) {
-            System.out.println(token + " unregistered");
+            System.out.println(token + " unregistered from callbacks");
         } else {
-            System.out.println("Unable to unregister client" + token +".");
+            System.out.println("Unable to unregister client" + token +" from callbacks.");
         }
     }
 
     @Override
     public synchronized void tryNotifyFollowersUpdate(String toUpdate) throws RemoteException {
         //se il client da notificare è registrato per il callback, la sua cache dei followers viene aggiornata
-
-        for (UUID token :clients.keySet()){
+        for (UUID token : clients.keySet()){
             if (userIdLookup.containsKey(token) && userIdLookup.get(token).equals(toUpdate)){
                 List<String> followers = IWinImpl.getUserFollowers(toUpdate);
                 clients.get(token).updateFollowersCache(followers);
